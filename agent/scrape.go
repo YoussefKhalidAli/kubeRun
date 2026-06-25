@@ -1,6 +1,9 @@
 package main
 
 import (
+	"errors"
+	"syscall"
+
 	"github.com/ti-mo/conntrack"
 	"github.com/ti-mo/netfilter"
 )
@@ -12,7 +15,11 @@ var EventChan chan conntrack.Event
 func KernelListener() *conntrack.Conn {
 	c, err := conntrack.Dial(nil)
 	if err != nil {
-		HandelError(err, "conntrack")
+		if errors.Is(err, syscall.EPERM) {
+			HandelError(err, "KR0403", "_")
+		} else if errors.Is(err, syscall.EPROTONOSUPPORT) {
+			HandelError(err, "KR0404", "the nf_conntrack module isn't loaded on the host node")
+		}
 	}
 
 	EventChan = make(chan conntrack.Event)
@@ -23,7 +30,7 @@ func KernelListener() *conntrack.Conn {
 
 	go func() {
 		if _, err := c.Listen(EventChan, 2, eventGroups); err != nil {
-			HandelError(err, "Administrative")
+			HandelError(err, "KR0403", "_")
 		}
 	}()
 
