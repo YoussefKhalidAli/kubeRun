@@ -12,7 +12,7 @@ var EventChan chan conntrack.Event
 
 // This function opens a connection with the kernel and scrapes all new and updated connections.
 // All captured data is send to "EventChan" channel that is then filtered
-func KernelListener() *conntrack.Conn {
+func KernelListener(eventGroups []netfilter.NetlinkGroup) *conntrack.Conn {
 	c, err := conntrack.Dial(nil)
 	if err != nil {
 		if errors.Is(err, syscall.EPERM) {
@@ -23,10 +23,6 @@ func KernelListener() *conntrack.Conn {
 	}
 
 	EventChan = make(chan conntrack.Event)
-	eventGroups := []netfilter.NetlinkGroup{
-		netfilter.GroupCTNew,
-		netfilter.GroupCTUpdate,
-	}
 
 	go func() {
 		if _, err := c.Listen(EventChan, 2, eventGroups); err != nil {
