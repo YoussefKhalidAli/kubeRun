@@ -7,7 +7,7 @@ import (
 )
 
 func Alert(ip string) {
-	controllerUrl := fmt.Sprintf("http://%v/alert", KubeRunController)
+	controllerUrl := fmt.Sprintf("http://%v/alert", Config.KubeRunController)
 	println(controllerUrl)
 	http.Post(controllerUrl, "text/plain", strings.NewReader(ip))
 }

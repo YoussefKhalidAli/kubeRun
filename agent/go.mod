@@ -3,8 +3,10 @@ module kuberun.com/agent
 go 1.25.0
 
 require (
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/ti-mo/conntrack v0.6.0
 	github.com/ti-mo/netfilter v0.5.3
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

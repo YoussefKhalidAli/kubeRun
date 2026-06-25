@@ -1,20 +1,23 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/ti-mo/netfilter"
 )
 
 var KubeRunController string = "localhost:4444"
 
 func main() {
-	// updated := os.Getenv.("UPDATED")
-	updated := false
+	watcher := LoadVariables()
+	defer watcher.Close()
 
+	fmt.Println(Config)
 	eventGroups := []netfilter.NetlinkGroup{
 		netfilter.GroupCTNew,
 	}
 
-	if updated {
+	if Config.Update {
 		eventGroups = append(eventGroups, netfilter.GroupCTUpdate)
 	}
 
