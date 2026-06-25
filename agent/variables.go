@@ -25,16 +25,16 @@ func LoadVariables() *fsnotify.Watcher {
 	if errors.As(err, &errno) {
 		switch errno {
 		case syscall.ENOMEM:
-			HandelError(err, "KR0012", "Out of Kernel Memory")
+			HandelError(err, "KRA0012", "Out of Kernel Memory")
 		case syscall.EMFILE:
-			HandelError(err, "KR0024", "Too Many Active Watcher Instances")
+			HandelError(err, "KRA0024", "Too Many Active Watcher Instances")
 		case syscall.ENFILE:
-			HandelError(err, "KR0023", "System-Wide File Descriptor Exhaustion")
+			HandelError(err, "KRA0023", "System-Wide File Descriptor Exhaustion")
 		default:
-			HandelError(err, "KR9010", "Generic System Initialization Failure")
+			HandelError(err, "KRA9010", "Generic System Initialization Failure")
 		}
 	} else {
-		HandelError(err, "KR9011", "Unknown Watcher Error")
+		HandelError(err, "KRA9011", "Unknown Watcher Error")
 	}
 
 	readVariables()
@@ -69,7 +69,7 @@ func LoadVariables() *fsnotify.Watcher {
 func readVariables() {
 	bytes, err := os.ReadFile(configPath)
 	if err != nil {
-		HandelError(err, "KR0404", "Config file not found in /etc/agent-config/config.yml")
+		HandelError(err, "KRA0404", "Config file not found in /etc/agent-config/config.yml")
 	}
 	yaml.Unmarshal(bytes, &Config)
 }
