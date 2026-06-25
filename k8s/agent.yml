@@ -15,9 +15,16 @@ spec:
                 name: kube-agent
         spec:
             hostNetwork: true
+            tolerations:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
+                  effect: NoSchedule
+                - key: node-role.kubernetes.io/master
+                  operator: Exists
+                  effect: NoSchedule
             containers:
                 - name: agent
-                  image: youssefkali/kuberun-agent:v0.1.2
+                  image: youssefkali/kuberun-agent:v0.1.1
                   imagePullPolicy: Always
                   securityContext:
                       privileged: true
