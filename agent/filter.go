@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"slices"
 )
 
@@ -12,7 +11,8 @@ func Filter() {
 	for event := range EventChan {
 		ip := event.Flow.TupleOrig.IP.DestinationAddress.Unmap().String()
 		if slices.Contains(ips[:], ip) {
-			fmt.Println(ip)
+			println(ip)
+			Alert(ip)
 		}
 	}
 }

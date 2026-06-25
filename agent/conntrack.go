@@ -4,10 +4,11 @@ import (
 	"github.com/ti-mo/netfilter"
 )
 
+var KubeRunController string = "localhost:4444"
+
 func main() {
-	// kubeRunNamespace := os.Getenv("NAMESPACE")
 	// updated := os.Getenv.("UPDATED")
-	updated := true
+	updated := false
 
 	eventGroups := []netfilter.NetlinkGroup{
 		netfilter.GroupCTNew,
