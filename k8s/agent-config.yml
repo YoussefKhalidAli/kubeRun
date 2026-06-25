@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: kuberun-agent-config
+    namespace: default
+data:
+    config.yml: |
+        kube_run_controller: "54.167.114.144:4444"
+        update: false
+        ips:
+          - "10.110.91.113"
+        #  - "10.101.138.168"
+          - "10.106.160.35"
