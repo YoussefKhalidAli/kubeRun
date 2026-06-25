@@ -21,20 +21,23 @@ var configPath = "/etc/agent-config/config.yml"
 
 func LoadVariables() *fsnotify.Watcher {
 	watcher, err := fsnotify.NewWatcher()
-	var errno syscall.Errno
-	if errors.As(err, &errno) {
-		switch errno {
-		case syscall.ENOMEM:
-			HandelError(err, "KRA0012", "Out of Kernel Memory")
-		case syscall.EMFILE:
-			HandelError(err, "KRA0024", "Too Many Active Watcher Instances")
-		case syscall.ENFILE:
-			HandelError(err, "KRA0023", "System-Wide File Descriptor Exhaustion")
-		default:
-			HandelError(err, "KRA9010", "Generic System Initialization Failure")
+	if err != nil {
+
+		var errno syscall.Errno
+		if errors.As(err, &errno) {
+			switch errno {
+			case syscall.ENOMEM:
+				HandelError(err, "KRA0012", "Out of Kernel Memory")
+			case syscall.EMFILE:
+				HandelError(err, "KRA0024", "Too Many Active Watcher Instances")
+			case syscall.ENFILE:
+				HandelError(err, "KRA0023", "System-Wide File Descriptor Exhaustion")
+			default:
+				HandelError(err, "KRA9010", "Generic System Initialization Failure")
+			}
+		} else {
+			HandelError(err, "KRA9011", "Unknown Watcher Error")
 		}
-	} else {
-		HandelError(err, "KRA9011", "Unknown Watcher Error")
 	}
 
 	readVariables()
@@ -52,7 +55,7 @@ func LoadVariables() *fsnotify.Watcher {
 				if !ok {
 					return
 				}
-				HandelError(err, "PlaceHolder", "_")
+				HandelError(err, "KRA9012", "fsnotify reported an error while watching the config file")
 			}
 		}
 	}()
