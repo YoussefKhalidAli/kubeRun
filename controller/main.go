@@ -2,32 +2,26 @@ package main
 
 import (
 	"time"
+
+	"kuberun.com/controller/kubernetes"
+	"kuberun.com/controller/utils"
 )
 
-type TargetDto struct {
-	LastAccessed time.Time
-	Name         string
-	Namespace    string
-	Resource     string
-}
-
-var Targets map[string]*TargetDto
-
 func main() {
-	Targets = make(map[string]*TargetDto)
-	Targets["10.110.91.113"] = &TargetDto{
+	utils.Targets = make(map[string]*utils.TargetDto)
+	utils.Targets["10.110.91.113"] = &utils.TargetDto{
 		LastAccessed: time.Now().Add(-24 * time.Hour),
 		Name:         "auth-service-pod",
 		Namespace:    "production",
 		Resource:     "pods",
 	}
 
-	Targets["10.106.160.35"] = &TargetDto{
+	utils.Targets["10.106.160.35"] = &utils.TargetDto{
 		LastAccessed: time.Now().Add(-24 * time.Hour),
 		Name:         "payment-gateway-svc",
 		Namespace:    "staging",
 		Resource:     "services",
 	}
-	Alert()
-
+	go Alert()
+	kubernetes.Kubernetes()
 }
