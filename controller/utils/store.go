@@ -10,4 +10,9 @@ type TargetDto struct {
 }
 
 var Targets map[string]*TargetDto
+
+// Configs
 var SyncTime int = 10
+
+// Annotations
+var RunAnnotation string = "kuberun.com/run"
