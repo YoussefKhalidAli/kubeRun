@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -10,31 +9,25 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-func AddService(obj any) {
-	svc, metadata, isRun := parseService(obj)
-
-	if !isRun {
-		return
-	}
-
+func addService(svc corev1.ServiceSpec, metadata v1.ObjectMeta) {
 	utils.Targets[svc.ClusterIP] = &utils.TargetDto{
 		LastAccessed: time.Now(),
 		ResourceName: metadata.Name,
 		Namespace:    metadata.Namespace,
 		Resource:     "placeholderRs",
 	}
+
+	utils.PrintTargets()
 }
 
-func DeleteService(obj any) {
-	svc, _, isRun := parseService(obj)
+func deleteService(clusterIP string) {
 
-	if !isRun {
-		delete(utils.Targets, svc.ClusterIP)
-	}
+	delete(utils.Targets, clusterIP)
+	utils.PrintTargets()
 	// TODO: Delte from agent config map
 }
 
-func parseService(obj any) (corev1.ServiceSpec, v1.ObjectMeta, bool) {
+func ParseService(obj any, operation string) {
 	svc, ok := obj.(*corev1.Service)
 	if !ok {
 		err := errors.New("Not a service")
@@ -43,8 +36,11 @@ func parseService(obj any) (corev1.ServiceSpec, v1.ObjectMeta, bool) {
 
 	isRun := filterAnnotations(svc.ObjectMeta.Annotations)
 
-	fmt.Println("IsRun", isRun)
-	return svc.Spec, svc.ObjectMeta, isRun
+	if isRun && operation == "add" {
+		addService(svc.Spec, svc.ObjectMeta)
+	} else if operation == "delete" {
+		deleteService(svc.Spec.ClusterIP)
+	}
 }
 
 func filterAnnotations(anns map[string]string) bool {

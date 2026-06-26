@@ -1,6 +1,10 @@
 package utils
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
 
 type TargetDto struct {
 	LastAccessed time.Time
@@ -16,3 +20,12 @@ var SyncTime int = 10
 
 // Annotations
 var RunAnnotation string = "kuberun.com/run"
+
+func PrintTargets() {
+	jsonData, err := json.MarshalIndent(Targets, "", "  ")
+	if err != nil {
+		fmt.Printf("Error printing map: %v\n", err)
+		return
+	}
+	fmt.Println(string(jsonData))
+}
