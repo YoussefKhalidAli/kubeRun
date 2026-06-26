@@ -11,14 +11,14 @@ func main() {
 	utils.Targets = make(map[string]*utils.TargetDto)
 	utils.Targets["10.110.91.113"] = &utils.TargetDto{
 		LastAccessed: time.Now().Add(-24 * time.Hour),
-		Name:         "auth-service-pod",
+		ResourceName: "auth-service-pod",
 		Namespace:    "production",
 		Resource:     "pods",
 	}
 
 	utils.Targets["10.106.160.35"] = &utils.TargetDto{
 		LastAccessed: time.Now().Add(-24 * time.Hour),
-		Name:         "payment-gateway-svc",
+		ResourceName: "payment-gateway-svc",
 		Namespace:    "staging",
 		Resource:     "services",
 	}

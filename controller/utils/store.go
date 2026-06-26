@@ -4,7 +4,7 @@ import "time"
 
 type TargetDto struct {
 	LastAccessed time.Time
-	Name         string
+	ResourceName string
 	Namespace    string
 	Resource     string
 }
