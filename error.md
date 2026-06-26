@@ -8,16 +8,25 @@
 
 ### All administrative errors are caused by a misconfiguration in KubeRun setup and start with `KR0`
 
-* **KRA0012:** his error surfaces when the host operating system is experiencing severe memory starvation and cannot allocate a small, non-swappable slice of RAM to initialize the core kernel monitoring structures.
+* **KRA0012:** This error surfaces when the host operating system is experiencing severe memory starvation and cannot allocate a small, non-swappable slice of RAM to initialize the core kernel monitoring structures.
 * **KRA0023:** This error indicates that the entire host machine has completely run out of system file allocations due to a massive density of open files or network connections across all active containers.
 * **KRA0024:** This error triggers when a single user account reaches the maximum number of concurrent file-monitoring queues allowed by the Linux kernel.
 * **KRA0403:** This error indicates KubeRun doesn't have the permissions it needs to run. KubeRun tries its best to get all permissions it needs, it should work out the box. There might be something in your environment blocking it. KubeRun requiers the following permissions:
   * **Agent:**
     1. **CAP_NET_ADMIN:** The KubeRun agent requires this to bind to Netlink conntrack multicast groups. This is how KubeRun Knows when the last time a service was accessed in your environment and based on that, whether to scale to 0 or not.
-* **KRA0404:** This error indicates KubeRun didn't find a necessary subsystem/process it needs to run. KubeRun assumes your system has:
-  * **Agent:**
+* **KRA0404:** This error indicates KubeRun agent didn't find a necessary subsystem/process it needs to run. KubeRun assumes your system has:
     1. **nf_conntrac:** The KubeRun agent requires this to estalish a connection to Netlink conntrack multicast groups. This is how KubeRun Knows when the last time a service was accessed in your environment and based on that, whether to scale to 0 or not.
+    1. **CAP_NET_ADMIN:** The KubeRun agent requires this to bind to Netlink conntrack multicast groups. This is how KubeRun Knows when the last time a service was accessed in your environment and based on that, whether to scale to 0 or not.
+* **KRC0404:** This error indicates KubeRun controller didn't find a necessary resouces it needs to run. KubeRun assumes your system has:
+    1. **agent-config:** The KubeRun controller edits the agent config to keep it updated on tracked resources. KubeRun creates this itself, but `KRC0404` is only caused by missing this cm. Double check your install.
 
+---
+
+## 2. Kubernetes connection errors:
+
+### Controller talks to kubeapi-server to manage it's own resources and yours. These errors mean something went wrong with the connection. These are most likely caused by an issue in your cluster, but if you don't find one please [open an issue](https://github.com/YoussefKhalidAli/kubeRun/issues/new).
+
+* **KRAC1440:** The KubeRun controller tried updaing the agent's cm `agent-config`, but the update failed.
 ---
 
 ## 2. KubeRun errors:

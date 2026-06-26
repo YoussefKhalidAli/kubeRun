@@ -13,10 +13,17 @@ type TargetDto struct {
 	Resource     string
 }
 
+type AgentConfig struct {
+	KubeRunController string   `yaml:"kube_run_controller"`
+	Update            bool     `yaml:"update"`
+	Ips               []string `yaml:"ips"`
+}
+
 var Targets map[string]*TargetDto
 
 // Configs
 var SyncTime int = 10
+var KubeRunNamespace string = "default"
 
 // Annotations
 var RunAnnotation string = "kuberun.com/run"
