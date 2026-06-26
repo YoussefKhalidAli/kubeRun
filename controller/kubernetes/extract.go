@@ -8,17 +8,18 @@ import (
 
 	"go.yaml.in/yaml/v2"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"kuberun.com/controller/utils"
 )
 
-func addService(svc corev1.ServiceSpec, metadata v1.ObjectMeta, clientset kubernetes.Interface) {
+func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
+	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
 	utils.Targets[svc.ClusterIP] = &utils.TargetDto{
 		LastAccessed: time.Now(),
-		ResourceName: metadata.Name,
+		ResourceName: resourceName,
 		Namespace:    metadata.Namespace,
-		Resource:     "placeholderRs",
+		Resource:     resource,
 	}
 	updateAgentCM(clientset, svc.ClusterIP, "add")
 
@@ -60,7 +61,7 @@ func filterAnnotations(anns map[string]string) bool {
 func updateAgentCM(clientset kubernetes.Interface, targetIP string, action string) error {
 	ctx := context.Background()
 
-	cm, err := clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Get(ctx, "agent-config", v1.GetOptions{})
+	cm, err := clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Get(ctx, "agent-config", metav1.GetOptions{})
 	if err != nil {
 		utils.HandelError(err, "KRC0404", "failed to get configmap")
 	}
@@ -95,7 +96,7 @@ func updateAgentCM(clientset kubernetes.Interface, targetIP string, action strin
 
 	cm.Data["config.yml"] = string(updatedBytes)
 
-	_, err = clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Update(ctx, cm, v1.UpdateOptions{})
+	_, err = clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		utils.HandelError(err, "KRC1440", "failed to marshal updated config payload")
 	}
