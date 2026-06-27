@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ func Alert() {
 
 	err := http.ListenAndServe(":4444", nil)
 	if err != nil {
-		utils.HandelError(err, "KRC9011", "Couldn't boot up http server.")
+		utils.HandelError(err, "KRC9011", "Couldn't boot up alert server.")
 	}
 }
 
