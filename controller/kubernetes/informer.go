@@ -14,6 +14,8 @@ import (
 	"kuberun.com/controller/utils"
 )
 
+var clientset *kubernetes.Clientset
+
 func connect() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -27,7 +29,7 @@ func connect() {
 		}
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
@@ -41,4 +43,8 @@ func connect() {
 	factory.Start(stopCh)
 	println("we a go")
 	<-stopCh
+}
+
+func GetClientset() *kubernetes.Clientset {
+	return clientset
 }
