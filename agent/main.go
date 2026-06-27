@@ -6,8 +6,6 @@ import (
 	"github.com/ti-mo/netfilter"
 )
 
-var KubeRunController string = "localhost:4444"
-
 func main() {
 	watcher := LoadVariables()
 	defer watcher.Close()
