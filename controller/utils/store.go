@@ -22,8 +22,10 @@ type AgentConfig struct {
 var Targets map[string]*TargetDto
 
 // Configs
-var SyncTime int = 10
+var syncMinutes time.Duration = 1
+var SyncTime time.Duration = syncMinutes * time.Minute
 var KubeRunNamespace string = "default"
+var KubeRunAgentConfigName string = "kuberun-agent-config"
 
 // Annotations
 var RunAnnotation string = "kuberun.com/run"
