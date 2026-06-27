@@ -33,5 +33,12 @@ spec:
   ports:
     - port: 80
       targetPort: 80
+      name: http
+    - port: 8080
+      targetPort: 8080
+      name: doublehttp
+    - port: 9090
+      targetPort: 9090
+      name: wierdhttp
   selector:
     app: auth-server

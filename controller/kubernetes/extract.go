@@ -22,9 +22,9 @@ func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 		Resource:     resource,
 		ServiceName:  metadata.Name,
 		IsSleep:      false,
+		ServicePorts: mapServicePorts(svc.Ports),
 		SelectorMap:  svc.Selector,
 	}
-
 	updateAgentCM(clientset, svc.ClusterIP, "add")
 
 	utils.PrintTargets()
@@ -59,6 +59,14 @@ func filterAnnotations(anns map[string]string) bool {
 		run = true
 	}
 	return run
+}
+
+func mapServicePorts(portsMap []corev1.ServicePort) *[]int {
+	targetPortsMap := make([]int, len(portsMap))
+	for index, port := range portsMap {
+		targetPortsMap[index] = port.TargetPort.IntValue()
+	}
+	return &targetPortsMap
 }
 
 func updateAgentCM(clientset kubernetes.Interface, targetIP string, action string) error {

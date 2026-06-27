@@ -13,6 +13,7 @@ type TargetDto struct {
 	Resource     string
 	ServiceName  string
 	IsSleep      bool
+	ServicePorts *[]int
 	SelectorMap  map[string]string
 }
 

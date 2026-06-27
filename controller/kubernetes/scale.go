@@ -6,6 +6,7 @@ import (
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"kuberun.com/controller/utils"
 )
 
@@ -51,8 +52,15 @@ func patchService(resource *utils.TargetDto, count int32) {
 		svc.Spec.Selector = map[string]string{
 			"KubeRun": "Controller",
 		}
+		for index, _ := range svc.Spec.Ports {
+			svc.Spec.Ports[index].TargetPort = intstr.FromInt(4444)
+		}
 	} else {
 		svc.Spec.Selector = resource.SelectorMap
+		servicePorts := *(resource.ServicePorts)
+		for index, _ := range svc.Spec.Ports {
+			svc.Spec.Ports[index].TargetPort = intstr.FromInt(servicePorts[index])
+		}
 	}
 
 	_, err = clientset.CoreV1().Services(resource.Namespace).Update(
