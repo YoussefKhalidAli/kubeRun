@@ -20,7 +20,9 @@ func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 		ResourceName: resourceName,
 		Namespace:    metadata.Namespace,
 		Resource:     resource,
+		ServiceName:  metadata.Name,
 		IsSleep:      false,
+		SelectorMap:  svc.Selector,
 	}
 
 	updateAgentCM(clientset, svc.ClusterIP, "add")

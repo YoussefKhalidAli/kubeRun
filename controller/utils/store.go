@@ -11,7 +11,9 @@ type TargetDto struct {
 	ResourceName string
 	Namespace    string
 	Resource     string
+	ServiceName  string
 	IsSleep      bool
+	SelectorMap  map[string]string
 }
 
 type AgentConfig struct {
