@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"flag"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -18,8 +17,8 @@ import (
 func connect() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		home, _ := os.UserHomeDir()
-		var kubeconfig *string = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		// home, _ := os.UserHomeDir()
+		var kubeconfig *string = flag.String("kubeconfig", filepath.Join("/home/ubuntu/", ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 		flag.Parse()
 
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
@@ -33,7 +32,7 @@ func connect() {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, time.Duration(utils.SyncTime)*time.Minute-time.Minute)
+	factory := informers.NewSharedInformerFactory(clientset, utils.SyncTime*time.Minute-time.Minute)
 
 	serviceInformer := factory.Core().V1().Services().Informer()
 

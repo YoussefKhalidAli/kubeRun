@@ -31,7 +31,6 @@ func deleteService(clusterIP string, clientset kubernetes.Interface) {
 	updateAgentCM(clientset, clusterIP, "delete")
 	delete(utils.Targets, clusterIP)
 	utils.PrintTargets()
-	// TODO: Delte from agent config map
 }
 
 func ParseService(clientset kubernetes.Interface, obj any, operation string) {
@@ -61,7 +60,7 @@ func filterAnnotations(anns map[string]string) bool {
 func updateAgentCM(clientset kubernetes.Interface, targetIP string, action string) error {
 	ctx := context.Background()
 
-	cm, err := clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Get(ctx, "agent-config", metav1.GetOptions{})
+	cm, err := clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Get(ctx, utils.KubeRunAgentConfigName, metav1.GetOptions{})
 	if err != nil {
 		utils.HandelError(err, "KRC0404", "failed to get configmap")
 	}

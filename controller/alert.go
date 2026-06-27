@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -31,6 +32,6 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 		utils.HandelError(err, "KRC9010", "Couldn't parse alert body.")
 	}
 	defer r.Body.Close()
-
 	utils.Targets[string(ip)].LastAccessed = time.Now()
+	fmt.Printf("Hit %v", utils.Targets[string(ip)])
 }
