@@ -30,4 +30,5 @@ func ScaleResource(resource *utils.TargetDto, count int32) {
 			utils.HandelError(err, "KRC9060", fmt.Sprintf("Couldn't scale deployment %v", resource.ResourceName))
 		}
 	}
+	resource.IsSleep = true
 }

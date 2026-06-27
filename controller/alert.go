@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"kuberun.com/controller/kubernetes"
 	"kuberun.com/controller/utils"
 )
 
@@ -32,6 +33,13 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 		utils.HandelError(err, "KRC9010", "Couldn't parse alert body.")
 	}
 	defer r.Body.Close()
-	utils.Targets[string(ip)].LastAccessed = time.Now()
-	fmt.Printf("Hit %v", utils.Targets[string(ip)])
+
+	target := utils.Targets[string(ip)]
+
+	target.LastAccessed = time.Now()
+	if target.IsSleep {
+		kubernetes.ScaleResource(target, 1)
+		target.IsSleep = false
+	}
+	fmt.Printf("Hit %v", target)
 }

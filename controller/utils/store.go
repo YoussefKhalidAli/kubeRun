@@ -11,6 +11,7 @@ type TargetDto struct {
 	ResourceName string
 	Namespace    string
 	Resource     string
+	IsSleep      bool
 }
 
 type AgentConfig struct {
@@ -23,7 +24,7 @@ var Targets map[string]*TargetDto
 
 // Configs
 var syncMinutes time.Duration = 1
-var SyncTime time.Duration = syncMinutes * time.Minute
+var SyncTime time.Duration = syncMinutes * time.Minute / 10
 var KubeRunNamespace string = "default"
 var KubeRunAgentConfigName string = "kuberun-agent-config"
 
