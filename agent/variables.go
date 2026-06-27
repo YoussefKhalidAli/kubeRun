@@ -17,7 +17,8 @@ type AgentConfig struct {
 }
 
 var Config AgentConfig
-var configPath = "/etc/agent-config/config.yml"
+var configDir = "/etc/agent-config"
+var configPath = configDir + "/config.yml"
 
 func LoadVariables() *fsnotify.Watcher {
 	watcher, err := fsnotify.NewWatcher()
@@ -60,7 +61,7 @@ func LoadVariables() *fsnotify.Watcher {
 		}
 	}()
 
-	err = watcher.Add(configPath)
+	err = watcher.Add(configDir)
 	if err != nil {
 		log.Fatal(err)
 	}
