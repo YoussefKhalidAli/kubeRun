@@ -1,54 +1,54 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-    name: kuberun-agent
-    namespace: default
-    labels:
-        app: kube-agent
+  name: kuberun-agent
+  namespace: default
+  labels:
+    app: kube-agent
 spec:
-    selector:
-        matchLabels:
-            name: kube-agent
-    template:
-        metadata:
-            labels:
-                name: kube-agent
-        spec:
-            hostNetwork: true
-            tolerations:
-                - key: node-role.kubernetes.io/control-plane
-                  operator: Exists
-                  effect: NoSchedule
-                - key: node-role.kubernetes.io/master
-                  operator: Exists
-                  effect: NoSchedule
-            containers:
-                - name: agent
-                  image: youssefkali/kuberun-agent:v0.1.1
-                  imagePullPolicy: Always
-                  securityContext:
-                      privileged: true
-                      capabilities:
-                          add:
-                              - NET_ADMIN
-                              - SYS_ADMIN
-                  volumeMounts:
-                      - name: config-volume
-                        mountPath: /etc/agent-config
-                        readOnly: true
-                      - name: host-netns
-                        mountPath: /var/run/netns
-                        readOnly: true
-                      - name: hostproc
-                        mountPath: /host/proc
-                        readOnly: true
-            volumes:
-                - name: config-volume
-                  configMap:
-                      name: kuberun-agent-config
-                - name: host-netns
-                  hostPath:
-                      path: /var/run/netns
-                - name: hostproc
-                  hostPath:
-                      path: /proc
+  selector:
+    matchLabels:
+      name: kube-agent
+  template:
+    metadata:
+      labels:
+        name: kube-agent
+    spec:
+      hostNetwork: true
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: agent
+          image: youssefkali/kuberun-agent:v0.1.2
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_ADMIN
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/agent-config
+              readOnly: true
+            - name: host-netns
+              mountPath: /var/run/netns
+              readOnly: true
+            - name: hostproc
+              mountPath: /host/proc
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: kuberun-agent-config
+        - name: host-netns
+          hostPath:
+            path: /var/run/netns
+        - name: hostproc
+          hostPath:
+            path: /proc
