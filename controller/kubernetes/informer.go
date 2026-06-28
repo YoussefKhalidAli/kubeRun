@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
 
@@ -34,7 +35,7 @@ func connect() {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, utils.SyncTime*time.Minute-time.Minute)
+	factory := informers.NewSharedInformerFactory(clientset, store.SyncTime*time.Minute-time.Minute)
 
 	serviceInformer := factory.Core().V1().Services().Informer()
 

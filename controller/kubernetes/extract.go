@@ -10,31 +10,34 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"kuberun.com/controller/server"
+	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
 
 func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
 	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
-	utils.Targets[svc.ClusterIP] = &utils.TargetDto{
+	store.Targets[svc.ClusterIP] = &store.TargetDto{
 		LastAccessed: time.Now(),
 		ResourceName: resourceName,
 		Namespace:    metadata.Namespace,
 		Resource:     resource,
 		ServiceName:  metadata.Name,
+		Server:       server.New(),
 		IsSleep:      false,
 		ServicePorts: mapServicePorts(svc.Ports),
 		SelectorMap:  svc.Selector,
 	}
 	updateAgentCM(clientset, svc.ClusterIP, "add")
 
-	utils.PrintTargets()
+	store.PrintTargets()
 }
 
 func deleteService(clusterIP string, clientset kubernetes.Interface) {
 
 	updateAgentCM(clientset, clusterIP, "delete")
-	delete(utils.Targets, clusterIP)
-	utils.PrintTargets()
+	delete(store.Targets, clusterIP)
+	store.PrintTargets()
 }
 
 func ParseService(clientset kubernetes.Interface, obj any, operation string) {
@@ -55,7 +58,7 @@ func ParseService(clientset kubernetes.Interface, obj any, operation string) {
 
 func filterAnnotations(anns map[string]string) bool {
 	run := false
-	if anns[utils.RunAnnotation] == "true" {
+	if anns[store.RunAnnotation] == "true" {
 		run = true
 	}
 	return run
@@ -72,7 +75,7 @@ func mapServicePorts(portsMap []corev1.ServicePort) *[]int {
 func updateAgentCM(clientset kubernetes.Interface, targetIP string, action string) error {
 	ctx := context.Background()
 
-	cm, err := clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Get(ctx, utils.KubeRunAgentConfigName, metav1.GetOptions{})
+	cm, err := clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Get(ctx, store.KubeRunAgentConfigName, metav1.GetOptions{})
 	if err != nil {
 		utils.HandelError(err, "KRC0404", "failed to get configmap")
 	}
@@ -81,7 +84,7 @@ func updateAgentCM(clientset kubernetes.Interface, targetIP string, action strin
 		utils.HandelError(err, "KRC0404", "configmap data or config.yml key is missing")
 	}
 
-	var innerConfig utils.AgentConfig
+	var innerConfig store.AgentConfig
 	err = yaml.Unmarshal([]byte(cm.Data["config.yml"]), &innerConfig)
 	if err != nil {
 		utils.HandelError(err, "KRC9040", "failed to unmarshal nested yml payload")
@@ -107,7 +110,7 @@ func updateAgentCM(clientset kubernetes.Interface, targetIP string, action strin
 
 	cm.Data["config.yml"] = string(updatedBytes)
 
-	_, err = clientset.CoreV1().ConfigMaps(utils.KubeRunNamespace).Update(ctx, cm, metav1.UpdateOptions{})
+	_, err = clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		utils.HandelError(err, "KRC1440", "failed to marshal updated config payload")
 	}

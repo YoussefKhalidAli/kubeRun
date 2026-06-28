@@ -3,11 +3,11 @@ package kubernetes
 import (
 	"time"
 
-	"kuberun.com/controller/utils"
+	"kuberun.com/controller/store"
 )
 
 func SyncLoop() {
-	ticker := time.NewTicker(utils.SyncTime)
+	ticker := time.NewTicker(store.SyncTime)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -16,8 +16,8 @@ func SyncLoop() {
 }
 
 func sync() {
-	for _, targetVal := range utils.Targets {
-		if time.Now().After(targetVal.LastAccessed.Add(utils.SyncTime)) {
+	for _, targetVal := range store.Targets {
+		if time.Now().After(targetVal.LastAccessed.Add(store.SyncTime)) {
 			ScaleResource(targetVal, 0)
 		}
 	}

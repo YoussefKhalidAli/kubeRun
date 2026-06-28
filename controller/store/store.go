@@ -1,9 +1,11 @@
-package utils
+package store
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"kuberun.com/controller/server"
 )
 
 type TargetDto struct {
@@ -13,6 +15,7 @@ type TargetDto struct {
 	Resource     string
 	ServiceName  string
 	IsSleep      bool
+	Server       *server.Switch
 	ServicePorts *[]int
 	SelectorMap  map[string]string
 }
