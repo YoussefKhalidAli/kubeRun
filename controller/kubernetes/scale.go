@@ -7,10 +7,11 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
 
-func ScaleResource(resource *utils.TargetDto, count int32) {
+func ScaleResource(resource *store.TargetDto, count int32) {
 	clientset := GetClientset()
 
 	scale := &autoscalingv1.Scale{
@@ -33,10 +34,16 @@ func ScaleResource(resource *utils.TargetDto, count int32) {
 			utils.HandelError(err, "KRC9060", fmt.Sprintf("Couldn't scale deployment %v", resource.ResourceName))
 		}
 	}
-	resource.IsSleep = true
+	if count == 0 {
+		resource.IsSleep = true
+		go resource.Server.Start()
+	} else {
+		resource.IsSleep = false
+		resource.Server.Signal <- true
+	}
 }
 
-func patchService(resource *utils.TargetDto, count int32) {
+func patchService(resource *store.TargetDto, count int32) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
