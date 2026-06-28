@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"sync"
 
 	"kuberun.com/controller/utils"
@@ -47,11 +49,23 @@ func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	sw.Signal.RLock()
 	defer sw.Signal.RUnlock()
 
-	proxyReq(r, sw.Proxy)
+	proxyReq(w, r, sw.Proxy)
 	sw.server.Close()
 	sw.Signal.Lock()
 }
 
-func proxyReq(req *http.Request, destination string) {
+func proxyReq(w http.ResponseWriter, req *http.Request, destination string) {
+	target, err := url.Parse(destination)
+	if err != nil {
+		http.Error(w, "invalid destination", http.StatusBadGateway)
+		return
+	}
 
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	req.URL.Host = target.Host
+	req.URL.Scheme = target.Scheme
+	req.Host = target.Host
+
+	proxy.ServeHTTP(w, req)
 }
