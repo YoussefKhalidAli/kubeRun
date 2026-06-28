@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"kuberun.com/controller/utils"
 )
@@ -11,8 +12,8 @@ type Switch struct {
 	Port   int
 	mux    *http.ServeMux
 	server *http.Server
-	reqs   []*http.Request
-	Signal chan bool
+	Proxy  string
+	Signal sync.RWMutex
 }
 
 var Switches []*Switch
@@ -21,15 +22,15 @@ func New() *Switch {
 	mux := http.NewServeMux()
 	port := len(Switches) + 4445
 	sw := &Switch{
-		Port:   port,
-		mux:    mux,
-		reqs:   []*http.Request{},
-		Signal: make(chan bool),
+		Port:  port,
+		mux:   mux,
+		Proxy: "",
 	}
 	sw.server = &http.Server{
 		Addr:    fmt.Sprintf(":%v", port),
 		Handler: mux,
 	}
+	sw.Signal.Lock()
 	Switches = append(Switches, sw)
 	return sw
 }
@@ -42,21 +43,15 @@ func (sw *Switch) Start() {
 	}
 }
 
-func (sw *Switch) Stop() {
-	sw.server.Close()
-}
-
 func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
-	sw.reqs = append(sw.reqs, r)
+	sw.Signal.RLock()
+	defer sw.Signal.RUnlock()
 
-	release := <-sw.Signal
-
-	if release {
-		// proxy func
-	}
-	sw.Stop()
+	proxyReq(r, sw.Proxy)
+	sw.server.Close()
+	sw.Signal.Lock()
 }
 
-func proxyReq(req *http.Request) {
+func proxyReq(req *http.Request, destination string) {
 
 }

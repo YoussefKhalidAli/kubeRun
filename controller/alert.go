@@ -39,7 +39,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 
 	target.LastAccessed = time.Now()
 	if target.IsSleep {
-		kubernetes.ScaleResource(target, 1)
+		kubernetes.ScaleResource(target, 1, string(ip))
 	}
 	fmt.Printf("Hit %v", target)
 }

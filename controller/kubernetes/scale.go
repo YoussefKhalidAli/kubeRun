@@ -11,7 +11,7 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-func ScaleResource(resource *store.TargetDto, count int32) {
+func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 	clientset := GetClientset()
 
 	scale := &autoscalingv1.Scale{
@@ -39,7 +39,8 @@ func ScaleResource(resource *store.TargetDto, count int32) {
 		go resource.Server.Start()
 	} else {
 		resource.IsSleep = false
-		resource.Server.Signal <- true
+		resource.Server.Proxy = destIp[0]
+		resource.Server.Signal.Unlock()
 	}
 }
 
