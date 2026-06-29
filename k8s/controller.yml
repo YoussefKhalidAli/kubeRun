@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberun-controller
+  labels:
+    KubeRun: Controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      KubeRun: Controller
+  template:
+    metadata:
+      labels:
+        KubeRun: Controller
+    spec:
+      serviceAccountName: kuberun-controller-sa
+      containers:
+        - name: kuberun-controller
+          image: youssefkali/kuberun-controller:v0.2.4
+          imagePullPolicy: Always
+          ports:
+            - name: alert
+              containerPort: 4444
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberun-controller-service
+spec:
+  selector:
+    KubeRun: Controller
+  type: ClusterIP
+  ports:
+    - name: tcp-4444
+      protocol: TCP
+      port: 4444
+      targetPort: 4444

@@ -1,36 +1,44 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
-    name: fluentbit-indexer
-    namespace: default
-    labels:
-        app: log-collector
+  name: payment-backend
+  namespace: default
+  labels:
+    app: payment-server
 spec:
-    selector:
-        matchLabels:
-            app: log-collector
-    template:
-        metadata:
-            labels:
-                app: log-collector
-        spec:
-            containers:
-                - name: fluentbit
-                  image: fluent/fluent-bit:latest
-                  ports:
-                      - containerPort: 5140
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-server
+  template:
+    metadata:
+      labels:
+        app: payment-server
+    spec:
+      containers:
+        - name: web
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
 ---
 apiVersion: v1
 kind: Service
 metadata:
-    name: log-router-svc
-    namespace: default
-    annotations:
-        kuberun.com/run: "true"
+  name: payment-backend-svc
+  namespace: default
+  annotations:
+    kuberun.com/run: "true"
 spec:
-    type: ClusterIP
-    ports:
-        - port: 514
-          targetPort: 5140
-    selector:
-        app: log-collector
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+    - port: 8080
+      targetPort: 8080
+      name: doublehttp
+    - port: 9090
+      targetPort: 9090
+      name: wierdhttp
+  selector:
+    app: payment-server

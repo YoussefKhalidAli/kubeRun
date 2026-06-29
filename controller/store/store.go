@@ -1,9 +1,11 @@
-package utils
+package store
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"kuberun.com/controller/server"
 )
 
 type TargetDto struct {
@@ -13,6 +15,7 @@ type TargetDto struct {
 	Resource     string
 	ServiceName  string
 	IsSleep      bool
+	Server       *server.Switch
 	ServicePorts *[]int
 	SelectorMap  map[string]string
 }
@@ -27,7 +30,7 @@ var Targets map[string]*TargetDto
 
 // Configs
 var syncMinutes time.Duration = 1
-var SyncTime time.Duration = syncMinutes * time.Minute / 10
+var SyncTime time.Duration = syncMinutes * time.Minute / 4
 var KubeRunNamespace string = "default"
 var KubeRunAgentConfigName string = "kuberun-agent-config"
 

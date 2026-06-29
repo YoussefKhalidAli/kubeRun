@@ -3,15 +3,20 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
 
-func ScaleResource(resource *utils.TargetDto, count int32) {
+func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 	clientset := GetClientset()
+	fmt.Printf("Scaling %v to %v", resource, count)
 
 	scale := &autoscalingv1.Scale{
 		ObjectMeta: metav1.ObjectMeta{
@@ -23,8 +28,6 @@ func ScaleResource(resource *utils.TargetDto, count int32) {
 		},
 	}
 
-	patchService(resource, count)
-
 	if resource.Resource == "Deployment" {
 		_, err := clientset.AppsV1().Deployments(resource.Namespace).UpdateScale(
 			context.TODO(), resource.ResourceName, scale, metav1.UpdateOptions{},
@@ -33,10 +36,21 @@ func ScaleResource(resource *utils.TargetDto, count int32) {
 			utils.HandelError(err, "KRC9060", fmt.Sprintf("Couldn't scale deployment %v", resource.ResourceName))
 		}
 	}
-	resource.IsSleep = true
+	if count == 0 {
+		resource.IsSleep = true
+		go resource.Server.Start()
+		patchService(resource, count)
+	} else {
+		waitForPodReady(resource)
+		resource.IsSleep = false
+		resource.Server.Proxy.Store("http://" + destIp[0])
+		patchService(resource, count)
+		time.Sleep(10 * time.Second)
+		resource.Server.Signal.Unlock()
+	}
 }
 
-func patchService(resource *utils.TargetDto, count int32) {
+func patchService(resource *store.TargetDto, count int32) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -53,7 +67,7 @@ func patchService(resource *utils.TargetDto, count int32) {
 			"KubeRun": "Controller",
 		}
 		for index, _ := range svc.Spec.Ports {
-			svc.Spec.Ports[index].TargetPort = intstr.FromInt(4444)
+			svc.Spec.Ports[index].TargetPort = intstr.FromInt(resource.Server.Port)
 		}
 	} else {
 		svc.Spec.Selector = resource.SelectorMap
@@ -70,5 +84,33 @@ func patchService(resource *utils.TargetDto, count int32) {
 	)
 	if err != nil {
 		utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't update service %v", resource.ServiceName))
+	}
+}
+
+func waitForPodReady(resource *store.TargetDto) {
+	clientset := GetClientset()
+
+	labels := []string{}
+	for k, v := range resource.SelectorMap {
+		labels = append(labels, fmt.Sprintf("%s=%s", k, v))
+	}
+	labelSelector := strings.Join(labels, ",")
+
+	for {
+		pods, err := clientset.CoreV1().Pods(resource.Namespace).List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labelSelector,
+		})
+		if err != nil {
+			utils.HandelError(err, "KRC9061", fmt.Sprintf("Couldn't get pods for %v", resource.ResourceName))
+			return
+		}
+		for _, pod := range pods.Items {
+			for _, condition := range pod.Status.Conditions {
+				if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+					return
+				}
+			}
+		}
+		time.Sleep(2 * time.Second)
 	}
 }

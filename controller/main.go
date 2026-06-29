@@ -2,14 +2,13 @@ package main
 
 import (
 	"kuberun.com/controller/kubernetes"
-	"kuberun.com/controller/server"
-	"kuberun.com/controller/utils"
+	"kuberun.com/controller/store"
 )
 
 func main() {
-	utils.Targets = make(map[string]*utils.TargetDto)
+	store.Targets = make(map[string]*store.TargetDto)
 
-	go server.Alert()
+	go Alert()
 
 	kubernetes.Kubernetes()
 }
