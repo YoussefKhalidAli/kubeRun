@@ -17,6 +17,10 @@ import (
 
 func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
 	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
+	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
+		println("Found unmanagable resource. Skipping")
+		return
+	}
 	store.Targets[svc.ClusterIP] = &store.TargetDto{
 		LastAccessed: time.Now(),
 		ResourceName: resourceName,
