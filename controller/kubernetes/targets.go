@@ -1,16 +1,13 @@
 package kubernetes
 
 import (
-	"errors"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"kuberun.com/controller/store"
-	"kuberun.com/controller/utils"
 )
 
-func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
+func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
 	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
@@ -24,7 +21,7 @@ func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 	store.PrintTargets()
 }
 
-func updateService(clussterIp string, service corev1.ServiceSpec) {
+func UpdateService(clussterIp string, service corev1.ServiceSpec) {
 	target := store.Targets[clussterIp]
 	target.SelectorMap = service.Selector
 	target.ServicePorts = MapServicePorts(service.Ports)
@@ -33,35 +30,11 @@ func updateService(clussterIp string, service corev1.ServiceSpec) {
 	}
 }
 
-func deleteService(clusterIP string, clientset kubernetes.Interface) {
+func DeleteService(clusterIP string, clientset kubernetes.Interface) {
 
 	UpdateAgentCM(clientset, clusterIP, "delete")
 	store.Targets[clusterIP].Server.Stop()
 	delete(store.Targets, clusterIP)
 
 	store.PrintTargets()
-}
-
-func ParseService(clientset kubernetes.Interface, obj any, operation string) {
-	svc, ok := obj.(*corev1.Service)
-	if !ok {
-		err := errors.New("Not a service")
-		utils.HandelError(err, "KRC9030", "The returned object is not a kubernetes service")
-	}
-
-	switch operation {
-	case "add":
-		{
-			addService(svc.Spec, svc.ObjectMeta, clientset)
-		}
-	case "delete":
-		{
-
-			deleteService(svc.Spec.ClusterIP, clientset)
-		}
-	case "update":
-		{
-			updateService(svc.Spec.ClusterIP, svc.Spec)
-		}
-	}
 }

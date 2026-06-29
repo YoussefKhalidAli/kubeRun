@@ -4,6 +4,7 @@ import (
 	"flag"
 	"path/filepath"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -42,9 +43,18 @@ func connect() {
 	serviceInformer := factory.Core().V1().Services().Informer()
 
 	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(obj any) { ParseService(clientset, obj, "add") },
-		DeleteFunc: func(obj any) { ParseService(clientset, obj, "delete") },
-		UpdateFunc: func(_ any, obj any) { ParseService(clientset, obj, "update") },
+		AddFunc: func(obj any) {
+			svc := obj.(*corev1.Service)
+			AddService(svc.Spec, svc.ObjectMeta, clientset)
+		},
+		DeleteFunc: func(obj any) {
+			svc := obj.(*corev1.Service)
+			DeleteService(svc.Spec.ClusterIP, clientset)
+		},
+		UpdateFunc: func(_ any, obj any) {
+			svc := obj.(*corev1.Service)
+			UpdateService(svc.Spec.ClusterIP, svc.Spec)
+		},
 	})
 
 	stopCh := make(chan struct{})
