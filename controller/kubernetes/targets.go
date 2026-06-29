@@ -24,6 +24,15 @@ func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 	store.PrintTargets()
 }
 
+func updateService(clussterIp string, service corev1.ServiceSpec) {
+	target := store.Targets[clussterIp]
+	target.SelectorMap = service.Selector
+	target.ServicePorts = MapServicePorts(service.Ports)
+	if target.IsSleep {
+		PatchService(target, 0)
+	}
+}
+
 func deleteService(clusterIP string, clientset kubernetes.Interface) {
 
 	UpdateAgentCM(clientset, clusterIP, "delete")
@@ -49,6 +58,10 @@ func ParseService(clientset kubernetes.Interface, obj any, operation string) {
 		{
 
 			deleteService(svc.Spec.ClusterIP, clientset)
+		}
+	case "update":
+		{
+			updateService(svc.Spec.ClusterIP, svc.Spec)
 		}
 	}
 }

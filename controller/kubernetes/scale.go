@@ -39,18 +39,18 @@ func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 	if count == 0 {
 		resource.IsSleep = true
 		go resource.Server.Start()
-		patchService(resource, count)
+		PatchService(resource, count)
 	} else {
 		waitForPodReady(resource)
 		resource.IsSleep = false
 		resource.Server.Proxy.Store("http://" + destIp[0])
-		patchService(resource, count)
+		PatchService(resource, count)
 		time.Sleep(10 * time.Second)
 		resource.Server.Signal.Unlock()
 	}
 }
 
-func patchService(resource *store.TargetDto, count int32) {
+func PatchService(resource *store.TargetDto, count int32) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

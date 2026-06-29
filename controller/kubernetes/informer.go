@@ -41,7 +41,12 @@ func connect() {
 
 	serviceInformer := factory.Core().V1().Services().Informer()
 
-	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{AddFunc: func(obj any) { ParseService(clientset, obj, "add") }, DeleteFunc: func(obj any) { ParseService(clientset, obj, "delete") }})
+	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj any) { ParseService(clientset, obj, "add") },
+		DeleteFunc: func(obj any) { ParseService(clientset, obj, "delete") },
+		UpdateFunc: func(_ any, obj any) { ParseService(clientset, obj, "update") },
+	})
+
 	stopCh := make(chan struct{})
 	factory.Start(stopCh)
 	println("we a go")
