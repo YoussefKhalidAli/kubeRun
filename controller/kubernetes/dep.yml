@@ -26,7 +26,7 @@ kind: Service
 metadata:
   name: auth-backend-svc
   namespace: default
-  annotations:
+  labels:
     kuberun.com/run: "true"
 spec:
   type: ClusterIP

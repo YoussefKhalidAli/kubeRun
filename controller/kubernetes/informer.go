@@ -4,6 +4,7 @@ import (
 	"flag"
 	"path/filepath"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -34,7 +35,9 @@ func connect() {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, store.SyncTime)
+	factory := informers.NewSharedInformerFactoryWithOptions(clientset, store.SyncTime, informers.WithTweakListOptions(func(opts *metav1.ListOptions) {
+		opts.LabelSelector = store.RunLabel
+	}))
 
 	serviceInformer := factory.Core().V1().Services().Informer()
 

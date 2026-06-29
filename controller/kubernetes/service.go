@@ -26,14 +26,6 @@ func CreateService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceN
 
 }
 
-func FilterAnnotations(anns map[string]string) bool {
-	run := false
-	if anns[store.RunAnnotation] == "true" {
-		run = true
-	}
-	return run
-}
-
 func MapServicePorts(portsMap []corev1.ServicePort) *[]int {
 	targetPortsMap := make([]int, len(portsMap))
 	for index, port := range portsMap {

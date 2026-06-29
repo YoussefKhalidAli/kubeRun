@@ -35,7 +35,7 @@ var KubeRunNamespace string = "default"
 var KubeRunAgentConfigName string = "kuberun-agent-config"
 
 // Annotations
-var RunAnnotation string = "kuberun.com/run"
+var RunLabel string = "kuberun.com/run"
 
 func PrintTargets() {
 	jsonData, err := json.MarshalIndent(Targets, "", "  ")

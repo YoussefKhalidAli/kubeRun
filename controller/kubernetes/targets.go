@@ -40,11 +40,15 @@ func ParseService(clientset kubernetes.Interface, obj any, operation string) {
 		utils.HandelError(err, "KRC9030", "The returned object is not a kubernetes service")
 	}
 
-	isRun := FilterAnnotations(svc.ObjectMeta.Annotations)
+	switch operation {
+	case "add":
+		{
+			addService(svc.Spec, svc.ObjectMeta, clientset)
+		}
+	case "delete":
+		{
 
-	if isRun && operation == "add" {
-		addService(svc.Spec, svc.ObjectMeta, clientset)
-	} else if operation == "delete" {
-		deleteService(svc.Spec.ClusterIP, clientset)
+			deleteService(svc.Spec.ClusterIP, clientset)
+		}
 	}
 }
