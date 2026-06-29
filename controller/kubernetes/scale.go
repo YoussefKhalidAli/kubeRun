@@ -28,8 +28,6 @@ func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 		},
 	}
 
-	patchService(resource, count)
-
 	if resource.Resource == "Deployment" {
 		_, err := clientset.AppsV1().Deployments(resource.Namespace).UpdateScale(
 			context.TODO(), resource.ResourceName, scale, metav1.UpdateOptions{},
@@ -41,10 +39,13 @@ func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 	if count == 0 {
 		resource.IsSleep = true
 		go resource.Server.Start()
+		patchService(resource, count)
 	} else {
 		waitForPodReady(resource)
 		resource.IsSleep = false
-		resource.Server.Proxy = destIp[0]
+		resource.Server.Proxy.Store("http://" + destIp[0])
+		patchService(resource, count)
+		time.Sleep(10 * time.Second)
 		resource.Server.Signal.Unlock()
 	}
 }
