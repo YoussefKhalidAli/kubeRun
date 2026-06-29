@@ -36,6 +36,7 @@ func addService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 func deleteService(clusterIP string, clientset kubernetes.Interface) {
 
 	updateAgentCM(clientset, clusterIP, "delete")
+	store.Targets[clusterIP].Server.Stop()
 	delete(store.Targets, clusterIP)
 	store.PrintTargets()
 }
