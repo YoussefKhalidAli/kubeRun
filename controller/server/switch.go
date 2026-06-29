@@ -14,38 +14,59 @@ import (
 )
 
 type Switch struct {
-	Port   int
-	mux    *http.ServeMux
-	server *http.Server
-	Proxy  atomic.Value
-	Signal sync.RWMutex
+	Port         int
+	mux          *http.ServeMux
+	server       *http.Server
+	serverMu     sync.Mutex
+	Proxy        atomic.Value
+	Signal       sync.RWMutex
+	shutdownOnce sync.Once
 }
 
 var Switches int = 0
 
 func New() *Switch {
-	mux := http.NewServeMux()
 	port := Switches + 4445
 	sw := &Switch{
 		Port: port,
-		mux:  mux,
-	}
-	sw.server = &http.Server{
-		Addr:    fmt.Sprintf(":%v", port),
-		Handler: mux,
 	}
 	sw.Signal.Lock()
 	Switches++
-	sw.mux.HandleFunc("/", sw.SwitchHandler)
 	return sw
 }
 
 func (sw *Switch) Start() {
+	sw.serverMu.Lock()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", sw.SwitchHandler)
+	sw.mux = mux
+	sw.server = &http.Server{
+		Addr:    fmt.Sprintf(":%v", sw.Port),
+		Handler: mux,
+	}
+	server := sw.server
+	sw.shutdownOnce = sync.Once{}
+	sw.serverMu.Unlock()
+
 	fmt.Printf("switch number %v listener booted successfully\n", sw.Port)
-	err := sw.server.ListenAndServe()
+	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		utils.HandelError(err, "KRC9019", fmt.Sprintf("Couldn't boot up switch number %v server.", sw.Port))
 	}
+}
+
+func (sw *Switch) Stop() {
+	sw.serverMu.Lock()
+	server := sw.server
+	once := &sw.shutdownOnce
+	sw.serverMu.Unlock()
+
+	once.Do(func() {
+		if server != nil {
+			server.Shutdown(context.Background())
+		}
+		sw.Signal.Lock()
+	})
 }
 
 func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +78,8 @@ func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	println("proxyDestination", proxyDestination)
 
 	proxyReq(w, r, proxyDestination)
-	sw.server.Shutdown(context.TODO())
-	sw.Signal.Lock()
+
+	go sw.Stop()
 }
 
 func proxyReq(w http.ResponseWriter, req *http.Request, destination string) {
