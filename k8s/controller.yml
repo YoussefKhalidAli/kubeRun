@@ -17,7 +17,8 @@ spec:
       serviceAccountName: kuberun-controller-sa
       containers:
         - name: kuberun-controller
-          image: youssefkali/kuberun-controller:v0.2.3
+          image: youssefkali/kuberun-controller:v0.2.4
+          imagePullPolicy: Always
           ports:
             - name: alert
               containerPort: 4444
