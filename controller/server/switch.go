@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -34,6 +35,7 @@ func New() *Switch {
 	}
 	sw.Signal.Lock()
 	Switches = append(Switches, sw)
+	sw.mux.HandleFunc("/", sw.SwitchHandler)
 	return sw
 }
 
@@ -50,7 +52,7 @@ func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	defer sw.Signal.RUnlock()
 
 	proxyReq(w, r, sw.Proxy)
-	sw.server.Close()
+	sw.server.Shutdown(context.TODO())
 	sw.Signal.Lock()
 }
 
