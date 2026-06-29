@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"flag"
 	"path/filepath"
-	"time"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -35,7 +34,7 @@ func connect() {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, store.SyncTime*time.Minute-time.Minute)
+	factory := informers.NewSharedInformerFactory(clientset, store.SyncTime)
 
 	serviceInformer := factory.Core().V1().Services().Informer()
 
