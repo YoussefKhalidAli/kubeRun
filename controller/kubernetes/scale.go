@@ -3,8 +3,11 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"kuberun.com/controller/store"
@@ -13,6 +16,7 @@ import (
 
 func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 	clientset := GetClientset()
+	fmt.Printf("Scaling %v to %v", resource, count)
 
 	scale := &autoscalingv1.Scale{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,6 +42,7 @@ func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 		resource.IsSleep = true
 		go resource.Server.Start()
 	} else {
+		waitForPodReady(resource)
 		resource.IsSleep = false
 		resource.Server.Proxy = destIp[0]
 		resource.Server.Signal.Unlock()
@@ -61,7 +66,7 @@ func patchService(resource *store.TargetDto, count int32) {
 			"KubeRun": "Controller",
 		}
 		for index, _ := range svc.Spec.Ports {
-			svc.Spec.Ports[index].TargetPort = intstr.FromInt(4444)
+			svc.Spec.Ports[index].TargetPort = intstr.FromInt(resource.Server.Port)
 		}
 	} else {
 		svc.Spec.Selector = resource.SelectorMap
@@ -78,5 +83,33 @@ func patchService(resource *store.TargetDto, count int32) {
 	)
 	if err != nil {
 		utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't update service %v", resource.ServiceName))
+	}
+}
+
+func waitForPodReady(resource *store.TargetDto) {
+	clientset := GetClientset()
+
+	labels := []string{}
+	for k, v := range resource.SelectorMap {
+		labels = append(labels, fmt.Sprintf("%s=%s", k, v))
+	}
+	labelSelector := strings.Join(labels, ",")
+
+	for {
+		pods, err := clientset.CoreV1().Pods(resource.Namespace).List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labelSelector,
+		})
+		if err != nil {
+			utils.HandelError(err, "KRC9061", fmt.Sprintf("Couldn't get pods for %v", resource.ResourceName))
+			return
+		}
+		for _, pod := range pods.Items {
+			for _, condition := range pod.Status.Conditions {
+				if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+					return
+				}
+			}
+		}
+		time.Sleep(2 * time.Second)
 	}
 }
