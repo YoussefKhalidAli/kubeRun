@@ -14,7 +14,7 @@ type TargetDto struct {
 	Namespace    string
 	Resource     string
 	ServiceName  string
-	IsSleep      bool
+	Status       string
 	Server       *server.Switch
 	ServicePorts *[]int
 	SelectorMap  map[string]string
@@ -30,7 +30,7 @@ var Targets map[string]*TargetDto
 
 // Configs
 var syncMinutes time.Duration = 1
-var SyncTime time.Duration = syncMinutes * time.Minute / 4
+var SyncTime time.Duration = syncMinutes * time.Minute / 2
 var KubeRunNamespace string = "default"
 var KubeRunAgentConfigName string = "kuberun-agent-config"
 

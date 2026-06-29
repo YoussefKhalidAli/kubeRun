@@ -25,7 +25,7 @@ func UpdateService(clussterIp string, service corev1.ServiceSpec) {
 	target := store.Targets[clussterIp]
 	target.SelectorMap = service.Selector
 	target.ServicePorts = MapServicePorts(service.Ports)
-	if target.IsSleep {
+	if target.Status == "Asleep" {
 		PatchService(target, 0)
 	}
 }

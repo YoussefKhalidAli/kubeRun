@@ -17,7 +17,8 @@ func SyncLoop() {
 
 func sync() {
 	for _, targetVal := range store.Targets {
-		if time.Now().After(targetVal.LastAccessed.Add(store.SyncTime)) && !targetVal.IsSleep {
+		if time.Now().After(targetVal.LastAccessed.Add(store.SyncTime)) && targetVal.Status == "Awake" {
+			targetVal.Status = "Sleeping"
 			ScaleResource(targetVal, 0)
 		}
 	}
