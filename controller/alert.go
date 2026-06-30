@@ -37,11 +37,14 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 
 	target := store.Targets[string(ip)]
 
+	target.Mux.Lock()
 	target.LastAccessed = time.Now()
 	println(ip)
-	if target.Status != "Awake" {
+	shouldWake := target.Status != "Awake" && target.Status != "Waking"
+	if shouldWake {
 		target.Status = "Waking"
 		go kubernetes.ScaleResource(target, 1, string(ip))
 	}
+	target.Mux.Unlock()
 	fmt.Printf("Hit %v", target)
 }

@@ -53,7 +53,7 @@ func connect() {
 		},
 		UpdateFunc: func(_ any, obj any) {
 			svc := obj.(*corev1.Service)
-			UpdateService(svc.Spec.ClusterIP, svc.Spec)
+			UpdateService(svc.Spec.ClusterIP, svc)
 		},
 	})
 

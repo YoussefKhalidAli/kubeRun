@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"kuberun.com/controller/server"
@@ -15,6 +16,8 @@ type TargetDto struct {
 	Resource     string
 	ServiceName  string
 	Status       string
+	UpdateMarker string
+	Mux          sync.Mutex
 	Server       *server.Switch
 	ServicePorts *[]int
 	SelectorMap  map[string]string
@@ -30,12 +33,12 @@ var Targets map[string]*TargetDto
 
 // Configs
 var syncMinutes time.Duration = 1
-var SyncTime time.Duration = syncMinutes * time.Minute / 2
-var KubeRunNamespace string = "default"
-var KubeRunAgentConfigName string = "kuberun-agent-config"
+var SyncTime = syncMinutes * time.Minute / 2
+var KubeRunNamespace = "default"
+var KubeRunAgentConfigName = "kuberun-agent-config"
 
-// Annotations
-var RunLabel string = "kuberun.com/run"
+// Labels
+var RunLabel = "kuberun.com/run=true"
 
 func PrintTargets() {
 	jsonData, err := json.MarshalIndent(Targets, "", "  ")
