@@ -4,10 +4,13 @@ import (
 	"fmt"
 
 	"github.com/ti-mo/netfilter"
+	"kuberun.com/agent/server"
 	"kuberun.com/agent/store"
 )
 
 func main() {
+	go server.Updates()
+
 	watcher := store.LoadVariables()
 	defer watcher.Close()
 
