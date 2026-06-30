@@ -92,6 +92,7 @@ func PatchService(resource *store.TargetDto, count int32) {
 		}
 	}
 
+	resource.Mux.Lock()
 	updated, err := clientset.CoreV1().Services(namespace).Update(
 		ctx,
 		svc,
@@ -102,7 +103,6 @@ func PatchService(resource *store.TargetDto, count int32) {
 		utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't update service %v", name))
 	}
 
-	resource.Mux.Lock()
 	resource.UpdateMarker = updated.ResourceVersion
 	resource.Mux.Unlock()
 }

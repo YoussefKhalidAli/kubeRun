@@ -36,7 +36,7 @@ func connect() {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
 
-	factory := informers.NewSharedInformerFactoryWithOptions(clientset, store.SyncTime, informers.WithTweakListOptions(func(opts *metav1.ListOptions) {
+	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithTweakListOptions(func(opts *metav1.ListOptions) {
 		opts.LabelSelector = store.RunLabel
 	}))
 
