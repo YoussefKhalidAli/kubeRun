@@ -28,6 +28,7 @@
 
 * **KRAC1440:** The KubeRun controller tried updaing the agent's cm `agent-config`, but the update failed.
 * **KRAC1441:** The KubeRun controller tried getting or updating a service and failed.
+* **KRAC1442:** The KubeRun controller tried getting or updating the agent using an API request and failed.
 ---
 
 ## 2. KubeRun errors:
