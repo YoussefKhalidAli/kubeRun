@@ -19,7 +19,7 @@ func CreateService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceN
 		Resource:     resource,
 		ServiceName:  metadata.Name,
 		Server:       server.New(),
-		IsSleep:      false,
+		Status:       "Awake",
 		ServicePorts: MapServicePorts(svc.Ports),
 		SelectorMap:  svc.Selector,
 	}

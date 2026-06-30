@@ -21,11 +21,20 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 	store.PrintTargets()
 }
 
-func UpdateService(clussterIp string, service corev1.ServiceSpec) {
+func UpdateService(clussterIp string, service *corev1.Service) {
 	target := store.Targets[clussterIp]
-	target.SelectorMap = service.Selector
-	target.ServicePorts = MapServicePorts(service.Ports)
-	if target.IsSleep {
+	target.Mux.Lock()
+	println("new", &service)
+	if target.UpdateMarker == service.ResourceVersion {
+		target.Mux.Unlock()
+		return
+	}
+
+	targetStatus := target.Status
+	target.SelectorMap = service.Spec.Selector
+	target.ServicePorts = MapServicePorts(service.Spec.Ports)
+	target.Mux.Unlock()
+	if targetStatus == "Asleep" && service.Spec.Selector["KubeRun"] != "Controller" {
 		PatchService(target, 0)
 	}
 }
