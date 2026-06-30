@@ -24,7 +24,6 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 func UpdateService(clussterIp string, service *corev1.Service) {
 	target := store.Targets[clussterIp]
 	target.Mux.Lock()
-	println("new", &service)
 	if target.UpdateMarker == service.ResourceVersion {
 		target.Mux.Unlock()
 		return
