@@ -16,6 +16,7 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 
 	CreateService(svc, metadata, resourceName, resource)
 
+	UpdateAgents(svc.ClusterIP)
 	UpdateAgentCM(clientset, svc.ClusterIP, "add")
 
 	store.PrintTargets()

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ti-mo/conntrack"
 	"github.com/ti-mo/netfilter"
+	"kuberun.com/agent/utils"
 )
 
 var EventChan chan conntrack.Event
@@ -16,9 +17,9 @@ func KernelListener(eventGroups []netfilter.NetlinkGroup) *conntrack.Conn {
 	c, err := conntrack.Dial(nil)
 	if err != nil {
 		if errors.Is(err, syscall.EPERM) {
-			HandelError(err, "KRA0403", "_")
+			utils.HandelError(err, "KRA0403", "_")
 		} else if errors.Is(err, syscall.EPROTONOSUPPORT) {
-			HandelError(err, "KRA0404", "the nf_conntrack module isn't loaded on the host node")
+			utils.HandelError(err, "KRA0404", "the nf_conntrack module isn't loaded on the host node")
 		}
 	}
 
@@ -26,7 +27,7 @@ func KernelListener(eventGroups []netfilter.NetlinkGroup) *conntrack.Conn {
 
 	go func() {
 		if _, err := c.Listen(EventChan, 2, eventGroups); err != nil {
-			HandelError(err, "KRA0403", "_")
+			utils.HandelError(err, "KRA0403", "_")
 		}
 	}()
 

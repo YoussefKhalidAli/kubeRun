@@ -5,6 +5,6 @@ metadata:
   namespace: default
 data:
   config.yml: |
-    kube_run_controller: "kuberun-controller-service.default.svc.cluster.local:4444"
+    kube_run_controller: "kuberun-controller.default.svc.cluster.local:4444"
     update: false
     ips:

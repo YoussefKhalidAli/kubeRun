@@ -4,15 +4,15 @@ metadata:
   name: kuberun-agent
   namespace: default
   labels:
-    app: kube-agent
+    app: kuberun-agent
 spec:
   selector:
     matchLabels:
-      name: kube-agent
+      name: kuberun-agent
   template:
     metadata:
       labels:
-        name: kube-agent
+        name: kuberun-agent
     spec:
       hostNetwork: true
       tolerations:
@@ -24,8 +24,12 @@ spec:
           effect: NoSchedule
       containers:
         - name: agent
-          image: youssefkali/kuberun-agent:v0.1.2
+          image: youssefkali/kuberun-agent:v0.2.0
           imagePullPolicy: Always
+          ports:
+            - name: updates
+              containerPort: 4443
+              hostPort: 4443
           securityContext:
             privileged: true
             capabilities:
@@ -52,3 +56,19 @@ spec:
         - name: hostproc
           hostPath:
             path: /proc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberun-agent
+  namespace: default
+  labels:
+    app: kuberun-agent
+spec:
+  clusterIP: None
+  selector:
+    name: kuberun-agent
+  ports:
+    - name: http-api
+      port: 4443
+      targetPort: 4443

@@ -2,7 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"net"
+	"net/http"
 	"slices"
+	"strings"
 
 	"go.yaml.in/yaml/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,4 +58,18 @@ func UpdateAgentCM(clientset kubernetes.Interface, targetIP string, action strin
 	}
 
 	return nil
+}
+
+func UpdateAgents(ip string) {
+	endpoints, err := net.LookupHost(store.KubeRunAgent)
+	if err != nil {
+		utils.HandelError(err, "KRC1442", "failed to find agents")
+	}
+	for _, endpoint := range endpoints {
+		_, err := http.Post("http://"+endpoint+":4443/update", "text/plain", strings.NewReader(ip))
+		if err != nil {
+			utils.HandelError(err, "KRC1442", "failed to update agents")
+		}
+	}
+
 }
