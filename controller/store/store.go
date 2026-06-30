@@ -36,6 +36,7 @@ var syncMinutes time.Duration = 1
 var SyncTime = syncMinutes * time.Minute / 3
 var KubeRunNamespace = "default"
 var KubeRunAgentConfigName = "kuberun-agent-config"
+var KubeRunAgent = "kuberun-agent.default.svc.cluster.local"
 
 // Labels
 var RunLabel = "kuberun.com/run=true"
