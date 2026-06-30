@@ -1,0 +1,50 @@
+package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"kuberun.com/controller/kubernetes"
+	"kuberun.com/controller/store"
+	"kuberun.com/controller/utils"
+)
+
+func Alert() {
+
+	http.HandleFunc("/alert", alertHandler)
+
+	println("Alert listener booted successfully")
+
+	err := http.ListenAndServe(":4444", nil)
+	if err != nil {
+		utils.HandelError(err, "KRC9011", "Couldn't boot up alert server.")
+	}
+}
+
+func alertHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ip, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.HandelError(err, "KRC9010", "Couldn't parse alert body.")
+	}
+	defer r.Body.Close()
+
+	target := store.Targets[string(ip)]
+
+	target.Mux.Lock()
+	target.LastAccessed = time.Now()
+	println(ip)
+	shouldWake := target.Status != "Awake" && target.Status != "Waking"
+	if shouldWake {
+		target.Status = "Waking"
+		go kubernetes.ScaleResource(target, 1, string(ip))
+	}
+	target.Mux.Unlock()
+	fmt.Printf("Hit %v", target)
+}
