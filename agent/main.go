@@ -4,18 +4,19 @@ import (
 	"fmt"
 
 	"github.com/ti-mo/netfilter"
+	"kuberun.com/agent/store"
 )
 
 func main() {
-	watcher := LoadVariables()
+	watcher := store.LoadVariables()
 	defer watcher.Close()
 
-	fmt.Println(Config)
+	fmt.Println(store.Config)
 	eventGroups := []netfilter.NetlinkGroup{
 		netfilter.GroupCTNew,
 	}
 
-	if Config.Update {
+	if store.Config.Update {
 		eventGroups = append(eventGroups, netfilter.GroupCTUpdate)
 	}
 

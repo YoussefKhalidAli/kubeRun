@@ -2,6 +2,9 @@ package main
 
 import (
 	"slices"
+
+	"kuberun.com/agent/server"
+	"kuberun.com/agent/store"
 )
 
 func Filter() {
@@ -9,9 +12,9 @@ func Filter() {
 
 	for event := range EventChan {
 		ip := event.Flow.TupleOrig.IP.DestinationAddress.Unmap().String()
-		if slices.Contains(Config.Ips[:], ip) {
+		if slices.Contains(store.Config.Ips[:], ip) {
 			println(ip)
-			Alert(ip)
+			server.Alert(ip)
 		}
 	}
 }
