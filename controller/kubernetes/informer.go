@@ -36,15 +36,21 @@ func connect() {
 		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
 	}
 
-	go serviceInformer()
-
-}
-
-func serviceInformer() {
-
 	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithTweakListOptions(func(opts *metav1.ListOptions) {
 		opts.LabelSelector = store.RunLabel
 	}))
+
+	serviceInformer(factory)
+
+	stopChan := make(chan struct{})
+	defer close(stopChan)
+	factory.Start(stopChan)
+	println("we a go")
+	<-stopChan
+
+}
+
+func serviceInformer(factory informers.SharedInformerFactory) {
 
 	serviceInformer := factory.Core().V1().Services().Informer()
 
@@ -62,11 +68,6 @@ func serviceInformer() {
 			UpdateService(svc.Spec.ClusterIP, svc)
 		},
 	})
-
-	serviceStopCh := make(chan struct{})
-	factory.Start(serviceStopCh)
-	println("we a go on svcs")
-	<-serviceStopCh
 }
 
 func GetClientset() *kubernetes.Clientset {
