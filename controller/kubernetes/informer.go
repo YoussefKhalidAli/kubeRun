@@ -77,7 +77,8 @@ func deploymentInformer(factory informers.SharedInformerFactory) {
 
 	deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(obj any) {
-			// DeleteDeployment()
+			depClusterIP := obj.(*metav1.ObjectMeta).Labels["kuberun/clusterIP"]
+			DeleteResource(depClusterIP)
 		},
 	})
 }

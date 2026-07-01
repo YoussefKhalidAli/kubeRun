@@ -28,7 +28,7 @@ func sync() {
 		targetVal.Mux.Unlock()
 
 		if resource == "" && resourceName == "" {
-			resourceName, resource := FindResource(GetClientset(), selectorMap, namespace)
+			resourceName, resource := FindResource(GetClientset(), selectorMap, namespace, index)
 			if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 				println("Found unmanagable resource. Skipping")
 				RemoveService(clientset, index)

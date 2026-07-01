@@ -8,7 +8,7 @@ import (
 )
 
 func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *kubernetes.Clientset) {
-	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
+	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
 		return

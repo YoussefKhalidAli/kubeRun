@@ -2,15 +2,19 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"kuberun.com/controller/store"
+	"kuberun.com/controller/utils"
 )
 
-func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string, resourceNamespace string) (string, string) {
+func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string, resourceNamespace string, clusterIP string) (string, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
@@ -43,6 +47,11 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 			}
 
 			if len(replicaSet.ObjectMeta.OwnerReferences) > 0 {
+				deployment, err := clientset.AppsV1().Deployments(resourceNamespace).Get(pollCtx, replicaSet.ObjectMeta.OwnerReferences[0].Name, metav1.GetOptions{})
+				if err != nil {
+					return false, nil
+				}
+				labelDeplyment(ctx, resourceNamespace, deployment, clusterIP)
 				resourceName = replicaSet.ObjectMeta.OwnerReferences[0].Name
 				resourceKind = replicaSet.ObjectMeta.OwnerReferences[0].Kind
 			} else {
@@ -62,4 +71,27 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 	}
 
 	return resourceName, resourceKind
+}
+
+func labelDeplyment(ctx context.Context, resourceNamespace string, deplyment *v1.Deployment, clusterIP string) {
+
+	deplyment.Labels["kuberun/clusterIP"] = clusterIP
+	deplyment.Labels["kuberun/run"] = "true"
+	_, err := clientset.AppsV1().Deployments(resourceNamespace).Update(
+		ctx,
+		deplyment,
+		metav1.UpdateOptions{},
+	)
+
+	if err != nil {
+		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update deployment %v", deplyment.Name))
+	}
+}
+
+func DeleteResource(clusterIP string) {
+	target := store.Targets[clusterIP]
+	target.Mux.Lock()
+	target.Resource = ""
+	target.ResourceName = ""
+	target.Mux.Unlock()
 }

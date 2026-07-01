@@ -26,9 +26,10 @@
 
 ### Controller talks to kubeapi-server to manage it's own resources and yours. These errors mean something went wrong with the connection. These are most likely caused by an issue in your cluster, but if you don't find one please [open an issue](https://github.com/YoussefKhalidAli/kubeRun/issues/new).
 
-* **KRAC1440:** The KubeRun controller tried updaing the agent's cm `agent-config`, but the update failed.
-* **KRAC1441:** The KubeRun controller tried getting or updating a service and failed.
-* **KRAC1442:** The KubeRun controller tried getting or updating the agent using an API request and failed.
+* **KRC1440:** The KubeRun controller tried updaing the agent's cm `agent-config`, but the update failed.
+* **KRC1441:** The KubeRun controller tried getting or updating a service and failed.
+* **KRC1442:** The KubeRun controller tried getting or updating the agent using an API request and failed.
+* **KRC1443:** The KubeRun controller tried getting or updating a deployment/statefullset and failed.
 ---
 
 ## 2. KubeRun errors:
