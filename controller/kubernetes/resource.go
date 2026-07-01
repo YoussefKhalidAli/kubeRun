@@ -89,6 +89,7 @@ func labelDeplyment(ctx context.Context, resourceNamespace string, deplyment *v1
 }
 
 func DeleteResource(clusterIP string) {
+	println("deleted resource")
 	target := store.Targets[clusterIP]
 	target.Mux.Lock()
 	target.Resource = ""
