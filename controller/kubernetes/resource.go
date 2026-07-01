@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func FindResource(clientset kubernetes.Interface, selectorMap map[string]string, resourceNamespace string) (string, string) {
+func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string, resourceNamespace string) (string, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 

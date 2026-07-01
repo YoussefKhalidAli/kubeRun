@@ -5,6 +5,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
@@ -24,6 +25,12 @@ func CreateService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceN
 		SelectorMap:  svc.Selector,
 	}
 
+}
+
+func RemoveService(clientset *kubernetes.Clientset, clusterIP string) {
+	UpdateAgentCM(clientset, clusterIP, "delete")
+	store.Targets[clusterIP].Server.Stop()
+	delete(store.Targets, clusterIP)
 }
 
 func MapServicePorts(portsMap []corev1.ServicePort) *[]int {

@@ -31,9 +31,7 @@ func sync() {
 			resourceName, resource := FindResource(GetClientset(), selectorMap, namespace)
 			if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 				println("Found unmanagable resource. Skipping")
-				UpdateAgentCM(clientset, index, "delete")
-				store.Targets[index].Server.Stop()
-				delete(store.Targets, index)
+				RemoveService(clientset, index)
 				return
 			} else if resourceName == "" && resource == "" {
 				continue

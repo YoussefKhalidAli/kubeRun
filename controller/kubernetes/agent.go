@@ -14,7 +14,7 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-func UpdateAgentCM(clientset kubernetes.Interface, targetIP string, action string) error {
+func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action string) error {
 	ctx := context.Background()
 
 	cm, err := clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Get(ctx, store.KubeRunAgentConfigName, metav1.GetOptions{})

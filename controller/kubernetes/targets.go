@@ -7,7 +7,7 @@ import (
 	"kuberun.com/controller/store"
 )
 
-func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
+func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *kubernetes.Clientset) {
 	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
@@ -39,11 +39,9 @@ func UpdateService(clussterIp string, service *corev1.Service) {
 	}
 }
 
-func DeleteService(clusterIP string, clientset kubernetes.Interface) {
+func DeleteService(clusterIP string, clientset *kubernetes.Clientset) {
 
-	UpdateAgentCM(clientset, clusterIP, "delete")
-	store.Targets[clusterIP].Server.Stop()
-	delete(store.Targets, clusterIP)
+	RemoveService(clientset, clusterIP)
 
 	store.PrintTargets()
 }
