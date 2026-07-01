@@ -41,6 +41,7 @@ func connect() {
 	}))
 
 	serviceInformer(factory)
+	deploymentInformer(factory)
 
 	stopChan := make(chan struct{})
 	defer close(stopChan)
@@ -66,6 +67,17 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 		UpdateFunc: func(_ any, obj any) {
 			svc := obj.(*corev1.Service)
 			UpdateService(svc.Spec.ClusterIP, svc)
+		},
+	})
+}
+
+func deploymentInformer(factory informers.SharedInformerFactory) {
+
+	deploymentInformer := factory.Apps().V1().Deployments().Informer()
+
+	deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: func(obj any) {
+			// DeleteDeployment()
 		},
 	})
 }
