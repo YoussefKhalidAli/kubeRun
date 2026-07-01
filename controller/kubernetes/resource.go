@@ -21,9 +21,9 @@ func FindResource(clientset kubernetes.Interface, selectorMap map[string]string,
 		LabelSelector: selector.String(),
 	}
 
-	var resourceName, resourceKind string
+	var resourceName, resourceKind string = "", ""
 
-	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, 1*time.Minute, true, func(pollCtx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, time.Minute, true, func(pollCtx context.Context) (bool, error) {
 		pods, err := clientset.CoreV1().Pods(resourceNamespace).List(pollCtx, listOptions)
 		if err != nil {
 			return false, nil
