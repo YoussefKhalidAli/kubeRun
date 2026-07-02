@@ -22,8 +22,15 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 	store.PrintTargets()
 }
 
-func UpdateService(clussterIp string, service *corev1.Service) {
+func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Service, clientset *kubernetes.Clientset) {
 	target := store.Targets[clussterIp]
+
+	if target == nil {
+		RemoveService(clientset, old.Spec.ClusterIP)
+		AddService(service.Spec, service.ObjectMeta, clientset)
+		return
+	}
+
 	target.Mux.Lock()
 	if target.UpdateMarker == service.ResourceVersion {
 		target.Mux.Unlock()

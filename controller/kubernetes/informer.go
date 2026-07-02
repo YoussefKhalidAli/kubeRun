@@ -64,9 +64,9 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			svc := obj.(*corev1.Service)
 			DeleteService(svc.Spec.ClusterIP, clientset)
 		},
-		UpdateFunc: func(_ any, obj any) {
+		UpdateFunc: func(old any, obj any) {
 			svc := obj.(*corev1.Service)
-			UpdateService(svc.Spec.ClusterIP, svc)
+			UpdateService(svc.Spec.ClusterIP, svc, old.(*corev1.Service), clientset)
 		},
 	})
 }
