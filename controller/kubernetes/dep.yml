@@ -27,7 +27,7 @@ metadata:
   name: auth-backend-svc
   namespace: default
   labels:
-    kuberun.com/run: "true"
+    kuberun/run: "true"
 spec:
   type: ClusterIP
   ports:

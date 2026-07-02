@@ -39,7 +39,7 @@ var KubeRunAgentConfigName = "kuberun-agent-config"
 var KubeRunAgent = "kuberun-agent.default.svc.cluster.local"
 
 // Labels
-var RunLabel = "kuberun.com/run=true"
+var RunLabel = "kuberun/run=true"
 
 func PrintTargets() {
 	jsonData, err := json.MarshalIndent(Targets, "", "  ")
