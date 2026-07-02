@@ -15,7 +15,7 @@ import (
 )
 
 func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string, resourceNamespace string, clusterIP string) (string, string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute/2)
 	defer cancel()
 
 	labelSet := labels.Set(selectorMap)
@@ -27,7 +27,7 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 
 	var resourceName, resourceKind string = "", ""
 
-	err := wait.PollUntilContextTimeout(ctx, 2*time.Second, time.Minute, true, func(pollCtx context.Context) (bool, error) {
+	wait.PollUntilContextTimeout(ctx, 2*time.Second, time.Minute/2, true, func(pollCtx context.Context) (bool, error) {
 		pods, err := clientset.CoreV1().Pods(resourceNamespace).List(pollCtx, listOptions)
 		if err != nil {
 			return false, nil
@@ -65,10 +65,6 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 
 		return true, nil
 	})
-
-	if err != nil {
-		panic(err)
-	}
 
 	return resourceName, resourceKind
 }
