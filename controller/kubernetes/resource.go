@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
@@ -51,7 +52,7 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 				if err != nil {
 					return false, nil
 				}
-				labelDeplyment(ctx, resourceNamespace, deployment, clusterIP)
+				LabelDeplyment(ctx, resourceNamespace, deployment, clusterIP)
 				resourceName = replicaSet.ObjectMeta.OwnerReferences[0].Name
 				resourceKind = replicaSet.ObjectMeta.OwnerReferences[0].Kind
 			} else {
@@ -69,26 +70,36 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 	return resourceName, resourceKind
 }
 
-func labelDeplyment(ctx context.Context, resourceNamespace string, deplyment *v1.Deployment, clusterIP string) {
+func LabelDeplyment(ctx context.Context, resourceNamespace string, deployment *v1.Deployment, clusterIP string) {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest, err := clientset.AppsV1().Deployments(resourceNamespace).Get(ctx, deployment.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
 
-	deplyment.Labels["kuberun/clusterIP"] = clusterIP
-	deplyment.Labels["kuberun/run"] = "true"
-	_, err := clientset.AppsV1().Deployments(resourceNamespace).Update(
-		ctx,
-		deplyment,
-		metav1.UpdateOptions{},
-	)
+		if latest.Labels == nil {
+			latest.Labels = make(map[string]string)
+		}
+		latest.Labels["kuberun/clusterIP"] = clusterIP
+		latest.Labels["kuberun/run"] = "true"
 
+		_, updateErr := clientset.AppsV1().Deployments(resourceNamespace).Update(
+			ctx,
+			latest,
+			metav1.UpdateOptions{},
+		)
+		return updateErr
+	})
 	if err != nil {
-		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update deployment %v", deplyment.Name))
+		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update deployment %v after retrying", deployment.Name))
 	}
 }
 
 func DeleteResource(clusterIP string) {
-	println("deleted resource")
 	target := store.Targets[clusterIP]
 	target.Mux.Lock()
 	target.Resource = ""
 	target.ResourceName = ""
 	target.Mux.Unlock()
+	println("deleted resource")
 }
