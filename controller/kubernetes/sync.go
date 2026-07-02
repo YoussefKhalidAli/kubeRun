@@ -17,6 +17,7 @@ func SyncLoop() {
 
 func sync() {
 	for index, targetVal := range store.Targets {
+		println("Syncing: ", index)
 
 		targetVal.Mux.Lock()
 		isResourcePresent := targetVal.Resource != "" && targetVal.ResourceName != ""

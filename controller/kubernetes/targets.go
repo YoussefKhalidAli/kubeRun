@@ -47,8 +47,6 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 }
 
 func DeleteService(clusterIP string, clientset *kubernetes.Clientset) {
-
 	RemoveService(clientset, clusterIP)
-
 	store.PrintTargets()
 }

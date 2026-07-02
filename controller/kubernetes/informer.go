@@ -1,10 +1,13 @@
 package kubernetes
 
 import (
+	"context"
 	"flag"
 	"path/filepath"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -61,7 +64,10 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			AddService(svc.Spec, svc.ObjectMeta, clientset)
 		},
 		DeleteFunc: func(obj any) {
-			svc := obj.(*corev1.Service)
+			svc, ok := obj.(*corev1.Service)
+			if !ok {
+				panic("couldn't convert object to service")
+			}
 			DeleteService(svc.Spec.ClusterIP, clientset)
 		},
 		UpdateFunc: func(old any, obj any) {
@@ -77,8 +83,27 @@ func deploymentInformer(factory informers.SharedInformerFactory) {
 
 	deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(obj any) {
-			depClusterIP := obj.(*metav1.ObjectMeta).Labels["kuberun/clusterIP"]
-			DeleteResource(depClusterIP)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			dep, ok := obj.(*appsv1.Deployment)
+			depClusterIP := dep.Labels["kuberun/clusterIP"]
+			if !ok {
+				return
+			}
+			println("Deleting deployment with clusterIP: ", depClusterIP)
+			current, err := clientset.AppsV1().Deployments(dep.Namespace).Get(
+				ctx, dep.Name, metav1.GetOptions{},
+			)
+
+			switch {
+			case errors.IsNotFound(err) || current.UID != dep.UID:
+				DeleteResource(depClusterIP)
+			case err != nil:
+				utils.HandelError(err, "KRC9022", "Couldn't verify deployment deletion")
+			default:
+				LabelDeplyment(ctx, dep.Namespace, dep, depClusterIP)
+			}
 		},
 	})
 }
