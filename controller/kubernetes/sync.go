@@ -17,40 +17,46 @@ func SyncLoop() {
 
 func sync() {
 	for index, targetVal := range store.Targets {
-		isAbsent := false
 
 		targetVal.Mux.Lock()
 		resource := targetVal.Resource
 		resourceName := targetVal.ResourceName
-		namespace := targetVal.Namespace
-		selectorMap := targetVal.SelectorMap
+		isResourcePresent := resource != "" && resourceName != ""
 		shouldSleep := time.Now().After(targetVal.LastAccessed.Add(store.SyncTime)) && targetVal.Status == "Awake"
 		targetVal.Mux.Unlock()
 
-		if resource == "" && resourceName == "" {
-			println("Empty resource in sync")
-			resourceName, resource := FindResource(GetClientset(), selectorMap, namespace, index)
-			if resourceName == "kuberun-controller" || resource == "DaemonSet" {
-				println("Found unmanagable resource. Skipping")
-				RemoveService(clientset, index)
-				return
-			} else if resourceName == "" && resource == "" {
-				continue
-			}
-			isAbsent = true
-		}
-
-		if shouldSleep {
+		if !isResourcePresent {
+			isResourcePresent = checkResource(targetVal, index)
+		} else if shouldSleep {
 			targetVal.Mux.Lock()
 			targetVal.Status = "Sleeping"
-
-			if isAbsent {
-				targetVal.Resource = resource
-				targetVal.ResourceName = resourceName
-			}
-
 			targetVal.Mux.Unlock()
+
 			ScaleResource(targetVal, 0)
 		}
 	}
+}
+
+func checkResource(target *store.TargetDto, index string) bool {
+
+	target.Mux.Lock()
+	namespace := target.Namespace
+	selectorMap := target.SelectorMap
+	target.Mux.Unlock()
+
+	resourceName, resource := FindResource(GetClientset(), selectorMap, namespace, index)
+	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
+		println("Found unmanagable resource. Skipping")
+		RemoveService(clientset, index)
+		return false
+	} else if resourceName == "" && resource == "" {
+		return false
+	}
+
+	target.Mux.Lock()
+	target.Resource = resource
+	target.ResourceName = resourceName
+	target.Mux.Unlock()
+
+	return true
 }
