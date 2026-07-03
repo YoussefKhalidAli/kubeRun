@@ -6,11 +6,17 @@
 ## Controller
 - 0.3.2: 
     - Dynamically Add/Remove deployments exposed by managed services
-      - Before: Controller needs the service o be created after or alongside registered services. If the service is created before the controller, it will not be able to find it.
+      - Before: Controller needs the service to be created after or alongside registered services. If the service is created before the controller, it will not be able to find it.
       - Now: Controller partly registers the service and waits for it's exposed ddeployments before starting the scale proccess. Deleting the deployment resets service back to partially managed.
     - Handle clusterIP changes
       - Before: Controller only updates the data of the service.
       - Now: Controller updates the data of the service and also replaces the entire entry if the clusterIP of the service is changed
+- 0.4.0: 
+    - Dynamically Add/Remove statefulsets exposed by managed services
+      - Before: Controller only watches deployments
+      - Now: Controller watches both deployments and statefulsets
+
+---
 
 ## Agent
 - 0.2.0: Add instant ip updates

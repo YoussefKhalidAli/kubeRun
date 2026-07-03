@@ -45,6 +45,7 @@ func connect() {
 
 	serviceInformer(factory)
 	deploymentInformer(factory)
+	statefulsetInformer(factory)
 
 	stopChan := make(chan struct{})
 	defer close(stopChan)
@@ -103,6 +104,37 @@ func deploymentInformer(factory informers.SharedInformerFactory) {
 				utils.HandelError(err, "KRC9022", "Couldn't verify deployment deletion")
 			default:
 				LabelDeplyment(ctx, dep.Namespace, dep, depClusterIP)
+			}
+		},
+	})
+}
+
+func statefulsetInformer(factory informers.SharedInformerFactory) {
+
+	statefulsetInformer := factory.Apps().V1().StatefulSets().Informer()
+
+	statefulsetInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: func(obj any) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			sts, ok := obj.(*appsv1.StatefulSet)
+			stsClusterIP := sts.Labels["kuberun/clusterIP"]
+			if !ok {
+				return
+			}
+			println("Deleting statefulset with clusterIP: ", stsClusterIP)
+			current, err := clientset.AppsV1().StatefulSets(sts.Namespace).Get(
+				ctx, sts.Name, metav1.GetOptions{},
+			)
+
+			switch {
+			case errors.IsNotFound(err) || current.UID != sts.UID:
+				DeleteResource(stsClusterIP)
+			case err != nil:
+				utils.HandelError(err, "KRC9022", "Couldn't verify deployment deletion")
+			default:
+				LabelStatefulSet(ctx, sts.Namespace, sts, stsClusterIP)
 			}
 		},
 	})

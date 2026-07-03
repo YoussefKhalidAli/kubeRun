@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"kuberun.com/controller/store"
 )
 
 func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string, resourceNamespace string, clusterIP string) (string, string) {
@@ -63,4 +64,14 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 	})
 
 	return resourceName, resourceKind
+}
+
+func DeleteResource(clusterIP string) {
+	target := store.Targets[clusterIP]
+	target.Mux.Lock()
+	target.Resource = ""
+	target.ResourceName = ""
+	target.Status = "Awake"
+	target.Mux.Unlock()
+	println("deleted resource")
 }
