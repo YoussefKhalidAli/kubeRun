@@ -34,8 +34,9 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 
 	switch action {
 	case "add":
-		if targetIP == "None" {
+		if strings.Contains(targetIP, "svc-") {
 			innerConfig.Ips = append(innerConfig.Ips, targetIPs...)
+			addHeadlessSet(targetIP, &innerConfig, targetIPs)
 		} else {
 			innerConfig.Ips = append(innerConfig.Ips, targetIP)
 		}
@@ -75,7 +76,15 @@ func UpdateAgents(ip string) {
 			utils.HandelError(err, "KRC1442", "failed to update agents")
 		}
 	}
+}
 
+func addHeadlessSet(name string, config *store.AgentConfig, ips []string) {
+	if config.HeadlessMap == nil {
+		config.HeadlessMap = make(map[string]string)
+	}
+	for _, ip := range ips {
+		config.HeadlessMap[ip] = name
+	}
 }
 
 func uniqueElements(slice []string) []string {

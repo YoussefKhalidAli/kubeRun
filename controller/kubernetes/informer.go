@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"flag"
-	"fmt"
 	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -159,7 +158,6 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 			slice := obj.(*discoveryv1.EndpointSlice)
 			owner := slice.ObjectMeta.OwnerReferences[0].Name
 			endpoints := slice.Endpoints
-			fmt.Println("slice", slice)
 			AddSlice(owner, endpoints)
 		},
 	})

@@ -24,9 +24,10 @@ type TargetDto struct {
 }
 
 type AgentConfig struct {
-	KubeRunController string   `yaml:"kube_run_controller"`
-	Update            bool     `yaml:"update"`
-	Ips               []string `yaml:"ips"`
+	KubeRunController string            `yaml:"kube_run_controller"`
+	Update            bool              `yaml:"update"`
+	Ips               []string          `yaml:"ips"`
+	HeadlessMap       map[string]string `yaml:"headless_map"`
 }
 
 var Targets map[string]*TargetDto
