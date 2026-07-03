@@ -34,13 +34,19 @@ func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
 		},
 	}
 
-	if resourceKind == "Deployment" {
-		_, err := clientset.AppsV1().Deployments(resource.Namespace).UpdateScale(
+	var err error
+	switch resourceKind {
+	case "Deployment":
+		_, err = clientset.AppsV1().Deployments(resource.Namespace).UpdateScale(
 			context.TODO(), name, scale, metav1.UpdateOptions{},
 		)
-		if err != nil {
-			utils.HandelError(err, "KRC9060", fmt.Sprintf("Couldn't scale deployment %v", name))
-		}
+	case "StatefulSet":
+		_, err = clientset.AppsV1().StatefulSets(resource.Namespace).UpdateScale(
+			context.TODO(), name, scale, metav1.UpdateOptions{})
+	}
+
+	if err != nil {
+		utils.HandelError(err, "KRC9060", fmt.Sprintf("Couldn't scale deployment %v", name))
 	}
 
 	if count == 0 {

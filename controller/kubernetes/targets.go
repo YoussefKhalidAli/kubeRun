@@ -13,8 +13,12 @@ import (
 )
 
 func CreateTarget(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceName string, resource string) {
+	key := svc.ClusterIP
+	if key == "None" {
+		key = GetHeadlessServiceKey(metadata.Name)
+	}
 
-	store.Targets[svc.ClusterIP] = &store.TargetDto{
+	store.Targets[key] = &store.TargetDto{
 		LastAccessed: time.Now(),
 		ResourceName: resourceName,
 		Namespace:    metadata.Namespace,

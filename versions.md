@@ -15,6 +15,11 @@
     - Dynamically Add/Remove statefulsets exposed by managed services
       - Before: Controller only watches deployments
       - Now: Controller watches both deployments and statefulsets
+- 0.4.1: 
+    - Set custome key for statefulset services
+      - Before: Statefulsets use headless services so there is not `clusterIP`, so the key became `None`.
+      - Now: Sets the key to `svc-<svcName>` for headless services.
+      - Note: This allows scaling statefulsets.
 
 ---
 

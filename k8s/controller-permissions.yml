@@ -19,14 +19,14 @@ rules:
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
 
-  # 3. Workload management (Fixes the "auth-backend" forbidden error)
   # This grants get/list/watch, plus update/patch and scale subresource rights
   - apiGroups: ["apps"]
     resources:
       - "deployments"
-      - "deployments/scale" # <-- Crucial for scaling/editing deployments
+      - "deployments/scale"
       - "replicasets"
       - "statefulsets"
+      - "statefulsets/scale"
       - "daemonsets"
     verbs: ["get", "list", "watch", "update", "patch"]
 
