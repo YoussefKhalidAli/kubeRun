@@ -14,7 +14,7 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action string) error {
+func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action string, targetIPs ...string) error {
 	ctx := context.Background()
 
 	cm, err := clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Get(ctx, store.KubeRunAgentConfigName, metav1.GetOptions{})
@@ -34,17 +34,21 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 
 	switch action {
 	case "add":
-		if !slices.Contains(innerConfig.Ips, targetIP) {
+		if targetIP == "None" {
+			innerConfig.Ips = append(innerConfig.Ips, targetIPs...)
+		} else {
 			innerConfig.Ips = append(innerConfig.Ips, targetIP)
 		}
 	case "delete":
 		innerConfig.Ips = slices.DeleteFunc(innerConfig.Ips, func(ip string) bool {
 			return ip == targetIP
 		})
+
 	default:
 		utils.HandelError(err, "KRC9041", "unsupported mutation action")
 	}
 
+	innerConfig.Ips = uniqueElements(innerConfig.Ips)
 	updatedBytes, err := yaml.Marshal(&innerConfig)
 	if err != nil {
 		utils.HandelError(err, "KRC9042", "failed to marshal updated config payload")
@@ -72,4 +76,16 @@ func UpdateAgents(ip string) {
 		}
 	}
 
+}
+
+func uniqueElements(slice []string) []string {
+	seen := make(map[string]bool)
+	result := []string{}
+	for _, val := range slice {
+		if !seen[val] {
+			seen[val] = true
+			result = append(result, val)
+		}
+	}
+	return result
 }
