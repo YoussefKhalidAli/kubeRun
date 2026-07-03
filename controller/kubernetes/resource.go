@@ -100,6 +100,7 @@ func DeleteResource(clusterIP string) {
 	target.Mux.Lock()
 	target.Resource = ""
 	target.ResourceName = ""
+	target.Status = "Awake"
 	target.Mux.Unlock()
 	println("deleted resource")
 }
