@@ -26,8 +26,8 @@ kind: Service
 metadata:
   name: payment-backend-svc
   namespace: default
-  annotations:
-    kuberun.com/run: "true"
+  labels:
+    kuberun/run: "true"
 spec:
   type: ClusterIP
   ports:

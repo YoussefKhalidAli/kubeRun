@@ -1,10 +1,12 @@
 package kubernetes
 
 import (
+	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
@@ -24,6 +26,20 @@ func CreateService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceN
 		SelectorMap:  svc.Selector,
 	}
 
+}
+
+func RemoveService(clientset *kubernetes.Clientset, clusterIP string) {
+	target := store.Targets[clusterIP]
+	if target.Status == "Asleep" {
+		target.Server.Stop()
+		target.Server.Signal.Unlock()
+	}
+
+	err := UpdateAgentCM(clientset, clusterIP, "delete")
+	if err != nil {
+		fmt.Printf("Error occurred while updating agent config map: _%v_", err)
+	}
+	delete(store.Targets, clusterIP)
 }
 
 func MapServicePorts(portsMap []corev1.ServicePort) *[]int {

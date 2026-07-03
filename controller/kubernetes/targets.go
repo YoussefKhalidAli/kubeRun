@@ -7,8 +7,8 @@ import (
 	"kuberun.com/controller/store"
 )
 
-func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset kubernetes.Interface) {
-	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace)
+func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *kubernetes.Clientset) {
+	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
 		return
@@ -22,8 +22,15 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset ku
 	store.PrintTargets()
 }
 
-func UpdateService(clussterIp string, service *corev1.Service) {
+func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Service, clientset *kubernetes.Clientset) {
 	target := store.Targets[clussterIp]
+
+	if target == nil {
+		RemoveService(clientset, old.Spec.ClusterIP)
+		AddService(service.Spec, service.ObjectMeta, clientset)
+		return
+	}
+
 	target.Mux.Lock()
 	if target.UpdateMarker == service.ResourceVersion {
 		target.Mux.Unlock()
@@ -39,11 +46,7 @@ func UpdateService(clussterIp string, service *corev1.Service) {
 	}
 }
 
-func DeleteService(clusterIP string, clientset kubernetes.Interface) {
-
-	UpdateAgentCM(clientset, clusterIP, "delete")
-	store.Targets[clusterIP].Server.Stop()
-	delete(store.Targets, clusterIP)
-
+func DeleteService(clusterIP string, clientset *kubernetes.Clientset) {
+	RemoveService(clientset, clusterIP)
 	store.PrintTargets()
 }

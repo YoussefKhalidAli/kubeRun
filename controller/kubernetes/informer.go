@@ -1,10 +1,13 @@
 package kubernetes
 
 import (
+	"context"
 	"flag"
 	"path/filepath"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -40,6 +43,19 @@ func connect() {
 		opts.LabelSelector = store.RunLabel
 	}))
 
+	serviceInformer(factory)
+	deploymentInformer(factory)
+
+	stopChan := make(chan struct{})
+	defer close(stopChan)
+	factory.Start(stopChan)
+	println("we a go")
+	<-stopChan
+
+}
+
+func serviceInformer(factory informers.SharedInformerFactory) {
+
 	serviceInformer := factory.Core().V1().Services().Informer()
 
 	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -48,19 +64,48 @@ func connect() {
 			AddService(svc.Spec, svc.ObjectMeta, clientset)
 		},
 		DeleteFunc: func(obj any) {
-			svc := obj.(*corev1.Service)
+			svc, ok := obj.(*corev1.Service)
+			if !ok {
+				panic("couldn't convert object to service")
+			}
 			DeleteService(svc.Spec.ClusterIP, clientset)
 		},
-		UpdateFunc: func(_ any, obj any) {
+		UpdateFunc: func(old any, obj any) {
 			svc := obj.(*corev1.Service)
-			UpdateService(svc.Spec.ClusterIP, svc)
+			UpdateService(svc.Spec.ClusterIP, svc, old.(*corev1.Service), clientset)
 		},
 	})
+}
 
-	stopCh := make(chan struct{})
-	factory.Start(stopCh)
-	println("we a go")
-	<-stopCh
+func deploymentInformer(factory informers.SharedInformerFactory) {
+
+	deploymentInformer := factory.Apps().V1().Deployments().Informer()
+
+	deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: func(obj any) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			dep, ok := obj.(*appsv1.Deployment)
+			depClusterIP := dep.Labels["kuberun/clusterIP"]
+			if !ok {
+				return
+			}
+			println("Deleting deployment with clusterIP: ", depClusterIP)
+			current, err := clientset.AppsV1().Deployments(dep.Namespace).Get(
+				ctx, dep.Name, metav1.GetOptions{},
+			)
+
+			switch {
+			case errors.IsNotFound(err) || current.UID != dep.UID:
+				DeleteResource(depClusterIP)
+			case err != nil:
+				utils.HandelError(err, "KRC9022", "Couldn't verify deployment deletion")
+			default:
+				LabelDeplyment(ctx, dep.Namespace, dep, depClusterIP)
+			}
+		},
+	})
 }
 
 func GetClientset() *kubernetes.Clientset {
