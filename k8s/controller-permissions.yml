@@ -30,6 +30,10 @@ rules:
       - "daemonsets"
     verbs: ["get", "list", "watch", "update", "patch"]
 
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+
   # 4. Edit a SPECIFIC configmap only (kuberun-agent-config)
   - apiGroups: [""]
     resources: ["configmaps"]

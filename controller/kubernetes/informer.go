@@ -3,10 +3,12 @@ package kubernetes
 import (
 	"context"
 	"flag"
+	"fmt"
 	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -45,7 +47,9 @@ func connect() {
 
 	serviceInformer(factory)
 	deploymentInformer(factory)
+
 	statefulsetInformer(factory)
+	endpointSlicesInformer(factory)
 
 	stopChan := make(chan struct{})
 	defer close(stopChan)
@@ -136,6 +140,22 @@ func statefulsetInformer(factory informers.SharedInformerFactory) {
 			default:
 				LabelStatefulSet(ctx, sts.Namespace, sts, stsClusterIP)
 			}
+		},
+	})
+}
+
+func endpointSlicesInformer(factory informers.SharedInformerFactory) {
+
+	endpointSlicesInformer := factory.Discovery().V1().EndpointSlices().Informer()
+
+	endpointSlicesInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		UpdateFunc: func(_ any, obj any) {
+			println("Got endpoint")
+			slice := obj.(*discoveryv1.EndpointSlice)
+			owner := slice.ObjectMeta.OwnerReferences[0].Name
+			endpoints := slice.Endpoints
+			fmt.Println("slice", slice)
+			AddSlice(owner, endpoints)
 		},
 	})
 }

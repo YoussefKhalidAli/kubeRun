@@ -16,10 +16,15 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 		return
 	}
 
-	CreateTarget(svc, metadata, resourceName, resource)
+	key := svc.ClusterIP
+	if key == "None" {
+		key = GetHeadlessServiceKey(metadata.Name)
+	} else {
+		UpdateAgents(key)
+		UpdateAgentCM(clientset, key, "add")
+	}
 
-	UpdateAgents(svc.ClusterIP)
-	UpdateAgentCM(clientset, svc.ClusterIP, "add")
+	CreateTarget(key, svc, metadata, resourceName, resource)
 
 	store.PrintTargets()
 }

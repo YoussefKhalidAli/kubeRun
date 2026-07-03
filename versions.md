@@ -20,6 +20,10 @@
       - Before: Statefulsets use headless services so there is not `clusterIP`, so the key became `None`.
       - Now: Sets the key to `svc-<svcName>` for headless services.
       - Note: This allows scaling statefulsets.
+- 0.4.2: 
+    - Watch endpoint slices created by statefulsets' headless services.
+      - Before: No way to actually watch statefulsets' headless services since they don't have clusterIPs.
+      - Now: Watch all pod IPs using the endpoint slice.
 
 ---
 

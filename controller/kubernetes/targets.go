@@ -12,11 +12,7 @@ import (
 	"kuberun.com/controller/store"
 )
 
-func CreateTarget(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceName string, resource string) {
-	key := svc.ClusterIP
-	if key == "None" {
-		key = GetHeadlessServiceKey(metadata.Name)
-	}
+func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceName string, resource string) {
 
 	store.Targets[key] = &store.TargetDto{
 		LastAccessed: time.Now(),
