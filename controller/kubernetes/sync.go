@@ -41,7 +41,7 @@ func checkResource(target *store.TargetDto, index string) {
 	resourceName, resource := FindResource(GetClientset(), target.SelectorMap, target.Namespace, index)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
-		RemoveService(clientset, index)
+		DeleteTarget(clientset, index)
 		return
 	} else if resourceName == "" && resource == "" {
 		return

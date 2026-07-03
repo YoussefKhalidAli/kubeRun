@@ -1,52 +1,51 @@
 package kubernetes
 
 import (
+	"fmt"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
 )
 
-func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *kubernetes.Clientset) {
-	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
-	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
-		println("Found unmanagable resource. Skipping")
-		return
+func CreateTarget(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceName string, resource string) {
+
+	store.Targets[svc.ClusterIP] = &store.TargetDto{
+		LastAccessed: time.Now(),
+		ResourceName: resourceName,
+		Namespace:    metadata.Namespace,
+		Resource:     resource,
+		ServiceName:  metadata.Name,
+		Server:       server.New(),
+		Status:       "Awake",
+		ServicePorts: MapServicePorts(svc.Ports),
+		SelectorMap:  svc.Selector,
 	}
 
-	CreateService(svc, metadata, resourceName, resource)
-
-	UpdateAgents(svc.ClusterIP)
-	UpdateAgentCM(clientset, svc.ClusterIP, "add")
-
-	store.PrintTargets()
 }
 
-func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Service, clientset *kubernetes.Clientset) {
-	target := store.Targets[clussterIp]
-
-	if target == nil {
-		RemoveService(clientset, old.Spec.ClusterIP)
-		AddService(service.Spec, service.ObjectMeta, clientset)
-		return
+func DeleteTarget(clientset *kubernetes.Clientset, clusterIP string) {
+	target := store.Targets[clusterIP]
+	if target.Status == "Asleep" {
+		target.Server.Stop()
+		target.Server.Signal.Unlock()
 	}
 
-	target.Mux.Lock()
-	if target.UpdateMarker == service.ResourceVersion {
-		target.Mux.Unlock()
-		return
+	err := UpdateAgentCM(clientset, clusterIP, "delete")
+	if err != nil {
+		fmt.Printf("Error occurred while updating agent config map: _%v_", err)
 	}
-
-	targetStatus := target.Status
-	target.SelectorMap = service.Spec.Selector
-	target.ServicePorts = MapServicePorts(service.Spec.Ports)
-	target.Mux.Unlock()
-	if targetStatus == "Asleep" && service.Spec.Selector["KubeRun"] != "Controller" {
-		PatchService(target, 0)
-	}
+	delete(store.Targets, clusterIP)
 }
 
-func DeleteService(clusterIP string, clientset *kubernetes.Clientset) {
-	RemoveService(clientset, clusterIP)
-	store.PrintTargets()
+func MapServicePorts(portsMap []corev1.ServicePort) *[]int {
+	targetPortsMap := make([]int, len(portsMap))
+	for index, port := range portsMap {
+		targetPortsMap[index] = port.TargetPort.IntValue()
+	}
+	return &targetPortsMap
 }
