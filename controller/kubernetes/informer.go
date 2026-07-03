@@ -73,7 +73,12 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			if !ok {
 				panic("couldn't convert object to service")
 			}
-			DeleteService(svc.Spec.ClusterIP, clientset)
+			key := svc.Spec.ClusterIP
+			if key == "None" {
+				key = GetHeadlessServiceKey(svc.ObjectMeta.Name)
+			}
+			DeleteTarget(clientset, key)
+			store.PrintTargets()
 		},
 		UpdateFunc: func(old any, obj any) {
 			svc := obj.(*corev1.Service)

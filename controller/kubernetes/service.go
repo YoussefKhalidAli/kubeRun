@@ -30,23 +30,17 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 }
 
 func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Service, clientset *kubernetes.Clientset) {
-	var target *store.TargetDto
 	var key string
 
 	if clussterIp == "None" {
 		key = GetHeadlessServiceKey(service.ObjectMeta.Name)
-		target = store.Targets[key]
 	} else {
 		key = clussterIp
-		target = store.Targets[key]
 	}
+	target := store.Targets[key]
 
 	if target == nil {
-		if old.Spec.ClusterIP != "None" {
-			DeleteTarget(clientset, old.Spec.ClusterIP)
-		} else {
-			DeleteTarget(clientset, GetHeadlessServiceKey(old.ObjectMeta.Name))
-		}
+		DeleteTarget(clientset, key)
 		AddService(service.Spec, service.ObjectMeta, clientset)
 		return
 	}
@@ -64,11 +58,6 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 	if targetStatus == "Asleep" && service.Spec.Selector["KubeRun"] != "Controller" {
 		PatchService(target, 0)
 	}
-}
-
-func DeleteService(clusterIP string, clientset *kubernetes.Clientset) {
-	DeleteTarget(clientset, clusterIP)
-	store.PrintTargets()
 }
 
 func GetHeadlessServiceKey(name string) string {
