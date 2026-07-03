@@ -24,11 +24,18 @@
     - Watch endpoint slices created by statefulsets' headless services.
       - Before: No way to actually watch statefulsets' headless services since they don't have clusterIPs.
       - Now: Watch all pod IPs using the endpoint slice.
+- 0.4.3: 
+    - Add headless services map.
+      - Before: No way to alert controller of a hit on headless service.
+      - Now: controller updates `headless_map` in the agent config. The agent uses this to translate pod IPs to target keys when dealing with headless services.
 
 ---
 
 ## Agent
 - 0.2.0: Add instant ip updates
-  - Before: Agent only updates the ip of the service when the agent cm is updated. This had a 1-2 minute delay.
-  - Now: Agent updates the ip of the service instantly when it changes. This is done by sending a request from controller to all agents as soon as a new service is registered.
-  - Note: Agent still primarly uses the cm to manage it's variables, the new `update` server just allows for instant updates untill the agent registers the updated cm.
+    - Before: Agent only updates the ip of the service when the agent cm is updated. This had a 1-2 minute delay.
+    - Now: Agent updates the ip of the service instantly when it changes. This is done by sending a request from controller to all agents as soon as a new service is registered.
+    - Note: Agent still primarly uses the cm to manage it's variables, the new `update` server just allows for instant updates untill the agent registers the updated cm.
+- 0.3.0: Add headless services map.
+    - Before: Agent Sends hit IP to controller.
+    - Now: Agent sends the key of the hit resource, be it a `ClusterIP` or the key of a headless service.
