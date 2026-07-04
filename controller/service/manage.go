@@ -1,4 +1,4 @@
-package kubernetes
+package service
 
 import (
 	"fmt"
@@ -6,12 +6,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"kuberun.com/controller/agent"
+	"kuberun.com/controller/resource"
+	"kuberun.com/controller/scale"
 	"kuberun.com/controller/store"
+	"kuberun.com/controller/targets"
 )
 
 func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *kubernetes.Clientset) {
-	resourceName, resource := FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
-	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
+	resourceName, resourceKind := resource.FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
+	if resourceName == "kuberun-controller" || resourceKind == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
 		return
 	}
@@ -20,11 +24,11 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 	if key == "None" {
 		key = GetHeadlessServiceKey(metadata.Name)
 	} else {
-		UpdateAgents(key)
-		UpdateAgentCM(clientset, key, "add")
+		agent.UpdateAgents(key)
+		agent.UpdateAgentCM(clientset, key, "add")
 	}
 
-	CreateTarget(key, svc, metadata, resourceName, resource)
+	targets.CreateTarget(key, svc, metadata, resourceName, resourceKind)
 
 	store.PrintTargets()
 }
@@ -40,7 +44,7 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 	target := store.Targets[key]
 
 	if target == nil {
-		DeleteTarget(clientset, key)
+		targets.DeleteTarget(clientset, key)
 		AddService(service.Spec, service.ObjectMeta, clientset)
 		return
 	}
@@ -53,10 +57,10 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 
 	targetStatus := target.Status
 	target.SelectorMap = service.Spec.Selector
-	target.ServicePorts = MapServicePorts(service.Spec.Ports)
+	target.ServicePorts = targets.MapServicePorts(service.Spec.Ports)
 	target.Mux.Unlock()
 	if targetStatus == "Asleep" && service.Spec.Selector["KubeRun"] != "Controller" {
-		PatchService(target, 0)
+		scale.PatchService(target, 0)
 	}
 }
 

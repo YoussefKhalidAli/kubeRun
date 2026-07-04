@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"kuberun.com/controller/kubernetes"
+	"kuberun.com/controller/scale"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
@@ -43,7 +43,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 	shouldWake := target.Status != "Awake" && target.Status != "Waking"
 	if shouldWake {
 		target.Status = "Waking"
-		go kubernetes.ScaleResource(target, 1, string(ip))
+		go scale.ScaleResource(target, 1, string(ip))
 	}
 	target.Mux.Unlock()
 	fmt.Printf("Hit %v", target)

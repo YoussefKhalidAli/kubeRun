@@ -1,4 +1,4 @@
-package kubernetes
+package targets
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"kuberun.com/controller/agent"
 	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
 )
@@ -35,7 +36,7 @@ func DeleteTarget(clientset *kubernetes.Clientset, key string) {
 		target.Server.Signal.Unlock()
 	}
 
-	err := UpdateAgentCM(clientset, key, "delete")
+	err := agent.UpdateAgentCM(clientset, key, "delete")
 	if err != nil {
 		fmt.Printf("Error occurred while updating agent config map: _%v_", err)
 	}

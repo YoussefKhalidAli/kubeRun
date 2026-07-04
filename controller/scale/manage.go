@@ -1,4 +1,4 @@
-package kubernetes
+package scale
 
 import (
 	"context"
@@ -10,12 +10,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"kuberun.com/controller/client"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
 
+var clientset = client.GetClientset()
+
 func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
-	clientset := GetClientset()
 	fmt.Printf("Scaling %v to %v", resource, count)
 
 	resource.Mux.Lock()
@@ -71,8 +73,6 @@ func PatchService(resource *store.TargetDto, count int32) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	clientset := GetClientset()
-
 	resource.Mux.Lock()
 	name := resource.ServiceName
 	namespace := resource.Namespace
@@ -114,7 +114,6 @@ func PatchService(resource *store.TargetDto, count int32) {
 }
 
 func waitForPodReady(resource *store.TargetDto) {
-	clientset := GetClientset()
 
 	resource.Mux.Lock()
 	selectors := resource.SelectorMap

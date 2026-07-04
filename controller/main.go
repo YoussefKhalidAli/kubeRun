@@ -1,7 +1,8 @@
 package main
 
 import (
-	"kuberun.com/controller/kubernetes"
+	"kuberun.com/controller/concile"
+	"kuberun.com/controller/informer"
 	"kuberun.com/controller/store"
 )
 
@@ -10,5 +11,6 @@ func main() {
 
 	go Alert()
 
-	kubernetes.Kubernetes()
+	go concile.SyncLoop()
+	informer.Connect()
 }
