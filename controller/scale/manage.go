@@ -17,7 +17,8 @@ import (
 
 var clientset = client.GetClientset()
 
-func ScaleResource(resource *store.TargetDto, count int32, destIp ...string) {
+func ScaleResource(key string, count int32, destIp ...string) {
+	resource := store.Targets[key]
 	fmt.Printf("Scaling %v to %v", resource, count)
 
 	resource.Mux.Lock()

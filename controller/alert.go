@@ -43,7 +43,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 	shouldWake := target.Status != "Awake" && target.Status != "Waking"
 	if shouldWake {
 		target.Status = "Waking"
-		go scale.ScaleResource(target, 1, string(ip))
+		go scale.ScaleResource(string(ip), 1, string(ip))
 	}
 	target.Mux.Unlock()
 	fmt.Printf("Hit %v", target)

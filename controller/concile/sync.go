@@ -33,7 +33,7 @@ func sync() {
 			targetVal.Status = "Sleeping"
 			targetVal.Mux.Unlock()
 
-			scale.ScaleResource(targetVal, 0)
+			scale.ScaleResource(index, 0)
 		} else {
 			targetVal.Mux.Unlock()
 		}
