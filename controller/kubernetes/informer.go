@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"path/filepath"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -156,9 +157,12 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 		UpdateFunc: func(_ any, obj any) {
 			println("Got endpoint")
 			slice := obj.(*discoveryv1.EndpointSlice)
-			owner := slice.ObjectMeta.OwnerReferences[0].Name
-			endpoints := slice.Endpoints
-			AddSlice(owner, endpoints)
+			selector := slice.Endpoints[0].Hostname
+			if !strings.Contains(*selector, "kuberun-controller") {
+				owner := slice.ObjectMeta.OwnerReferences[0].Name
+				endpoints := slice.Endpoints
+				AddSlice(owner, endpoints)
+			}
 		},
 	})
 }
