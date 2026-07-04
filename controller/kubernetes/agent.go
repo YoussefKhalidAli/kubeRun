@@ -35,15 +35,31 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 	switch action {
 	case "add":
 		if strings.Contains(targetIP, "svc-") {
+			store.Targets[targetIP].Mux.Lock()
+			targetEndpoints := store.Targets[targetIP].Endpoints
+			store.Targets[targetIP].Mux.Unlock()
+
+			if len(targetEndpoints) > 0 {
+				innerConfig.Ips = deleteIPs(innerConfig.Ips, targetEndpoints...)
+				removeHeadlessSet(&innerConfig, targetEndpoints)
+			}
+
 			innerConfig.Ips = append(innerConfig.Ips, targetIPs...)
 			addHeadlessSet(targetIP, &innerConfig, targetIPs)
 		} else {
 			innerConfig.Ips = append(innerConfig.Ips, targetIP)
 		}
 	case "delete":
-		innerConfig.Ips = slices.DeleteFunc(innerConfig.Ips, func(ip string) bool {
-			return ip == targetIP
-		})
+		if strings.Contains(targetIP, "svc-") {
+			store.Targets[targetIP].Mux.Lock()
+			targetEndpoints := store.Targets[targetIP].Endpoints
+			store.Targets[targetIP].Mux.Unlock()
+
+			innerConfig.Ips = deleteIPs(innerConfig.Ips, targetEndpoints...)
+			removeHeadlessSet(&innerConfig, targetEndpoints)
+		} else {
+			innerConfig.Ips = deleteIPs(innerConfig.Ips, targetIP)
+		}
 
 	default:
 		utils.HandelError(err, "KRC9041", "unsupported mutation action")
@@ -78,12 +94,37 @@ func UpdateAgents(ip string) {
 	}
 }
 
+func deleteIPs(ips []string, targets ...string) []string {
+	if len(targets) == 0 {
+		return ips
+	}
+
+	toDelete := make(map[string]struct{}, len(targets))
+	for _, target := range targets {
+		toDelete[target] = struct{}{}
+	}
+
+	return slices.DeleteFunc(ips, func(ip string) bool {
+		_, found := toDelete[ip]
+		return found
+	})
+}
+
 func addHeadlessSet(name string, config *store.AgentConfig, ips []string) {
 	if config.HeadlessMap == nil {
 		config.HeadlessMap = make(map[string]string)
 	}
 	for _, ip := range ips {
 		config.HeadlessMap[ip] = name
+	}
+}
+
+func removeHeadlessSet(config *store.AgentConfig, ips []string) {
+	if config.HeadlessMap == nil {
+		config.HeadlessMap = make(map[string]string)
+	}
+	for _, ip := range ips {
+		delete(config.HeadlessMap, ip)
 	}
 }
 

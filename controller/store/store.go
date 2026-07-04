@@ -19,6 +19,7 @@ type TargetDto struct {
 	UpdateMarker string
 	Mux          sync.Mutex
 	Server       *server.Switch
+	Endpoints    []string
 	ServicePorts *[]int
 	SelectorMap  map[string]string
 }

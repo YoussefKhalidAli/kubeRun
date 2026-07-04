@@ -28,18 +28,18 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 
 }
 
-func DeleteTarget(clientset *kubernetes.Clientset, clusterIP string) {
-	target := store.Targets[clusterIP]
+func DeleteTarget(clientset *kubernetes.Clientset, key string) {
+	target := store.Targets[key]
 	if target.Status == "Asleep" {
 		target.Server.Stop()
 		target.Server.Signal.Unlock()
 	}
 
-	err := UpdateAgentCM(clientset, clusterIP, "delete")
+	err := UpdateAgentCM(clientset, key, "delete")
 	if err != nil {
 		fmt.Printf("Error occurred while updating agent config map: _%v_", err)
 	}
-	delete(store.Targets, clusterIP)
+	delete(store.Targets, key)
 }
 
 func MapServicePorts(portsMap []corev1.ServicePort) *[]int {
