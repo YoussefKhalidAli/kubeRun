@@ -16,12 +16,17 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 	endpointSlicesInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(_ any, obj any) {
 			println("Got endpoint")
-			eSlice := obj.(*discoveryv1.EndpointSlice)
-			selector := eSlice.Endpoints[0].Hostname
-			if !strings.Contains(*selector, "kuberun-controller") {
-				owner := eSlice.ObjectMeta.OwnerReferences[0].Name
-				endpoints := eSlice.Endpoints
-				slice.AddSlice(owner, endpoints)
+			eSlice, ok := obj.(*discoveryv1.EndpointSlice)
+			if !ok || eSlice == nil {
+				return
+			}
+			if len(eSlice.Endpoints) > 0 {
+				selector := eSlice.Endpoints[0].Hostname
+				if selector != nil && !strings.Contains(*selector, "kuberun-controller") {
+					owner := eSlice.ObjectMeta.OwnerReferences[0].Name
+					endpoints := eSlice.Endpoints
+					slice.AddSlice(owner, endpoints)
+				}
 			}
 		},
 	})
