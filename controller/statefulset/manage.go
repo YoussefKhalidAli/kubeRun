@@ -1,4 +1,4 @@
-package kubernetes
+package statefulset
 
 import (
 	"context"
@@ -7,12 +7,15 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
+	"kuberun.com/controller/client"
 	"kuberun.com/controller/utils"
 )
 
-func LabelDeplyment(ctx context.Context, resourceNamespace string, deployment *v1.Deployment, clusterIP string) {
+func LabelStatefulSet(ctx context.Context, resourceNamespace string, statefulset *v1.StatefulSet, clusterIP string) {
+	clientset := client.GetClientset()
+
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latest, err := clientset.AppsV1().Deployments(resourceNamespace).Get(ctx, deployment.Name, metav1.GetOptions{})
+		latest, err := clientset.AppsV1().StatefulSets(resourceNamespace).Get(ctx, statefulset.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -23,7 +26,7 @@ func LabelDeplyment(ctx context.Context, resourceNamespace string, deployment *v
 		latest.Labels["kuberun/clusterIP"] = clusterIP
 		latest.Labels["kuberun/run"] = "true"
 
-		_, updateErr := clientset.AppsV1().Deployments(resourceNamespace).Update(
+		_, updateErr := clientset.AppsV1().StatefulSets(resourceNamespace).Update(
 			ctx,
 			latest,
 			metav1.UpdateOptions{},
@@ -31,6 +34,6 @@ func LabelDeplyment(ctx context.Context, resourceNamespace string, deployment *v
 		return updateErr
 	})
 	if err != nil {
-		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update deployment %v after retrying", deployment.Name))
+		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update statefulset %v after retrying", statefulset.Name))
 	}
 }

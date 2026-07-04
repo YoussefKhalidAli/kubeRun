@@ -1,4 +1,4 @@
-package kubernetes
+package resource
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"kuberun.com/controller/deployment"
 	"kuberun.com/controller/store"
 )
 
@@ -44,11 +45,11 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 			}
 
 			if len(replicaSet.ObjectMeta.OwnerReferences) > 0 {
-				deployment, err := clientset.AppsV1().Deployments(resourceNamespace).Get(pollCtx, replicaSet.ObjectMeta.OwnerReferences[0].Name, metav1.GetOptions{})
+				dep, err := clientset.AppsV1().Deployments(resourceNamespace).Get(pollCtx, replicaSet.ObjectMeta.OwnerReferences[0].Name, metav1.GetOptions{})
 				if err != nil {
 					return false, nil
 				}
-				LabelDeplyment(ctx, resourceNamespace, deployment, clusterIP)
+				deployment.LabelDeplyment(ctx, resourceNamespace, dep, clusterIP)
 				resourceName = replicaSet.ObjectMeta.OwnerReferences[0].Name
 				resourceKind = replicaSet.ObjectMeta.OwnerReferences[0].Kind
 			} else {
