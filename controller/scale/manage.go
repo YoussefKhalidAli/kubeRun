@@ -15,9 +15,9 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-var clientset = client.GetClientset()
-
 func ScaleResource(key string, count int32, destIp ...string) {
+	clientset := client.GetClientset()
+
 	resource := store.Targets[key]
 	fmt.Printf("Scaling %v to %v", resource, count)
 
@@ -71,6 +71,8 @@ func ScaleResource(key string, count int32, destIp ...string) {
 }
 
 func PatchService(resource *store.TargetDto, count int32) {
+	clientset := client.GetClientset()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -115,6 +117,7 @@ func PatchService(resource *store.TargetDto, count int32) {
 }
 
 func waitForPodReady(resource *store.TargetDto) {
+	clientset := client.GetClientset()
 
 	resource.Mux.Lock()
 	selectors := resource.SelectorMap
