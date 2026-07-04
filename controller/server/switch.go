@@ -21,6 +21,7 @@ type Switch struct {
 	Proxy        atomic.Value
 	Signal       sync.RWMutex
 	shutdownOnce sync.Once
+	ScaleUp      func()
 }
 
 var Switches int = 0
@@ -70,14 +71,20 @@ func (sw *Switch) Stop() {
 }
 
 func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
+	sw.ScaleUp()
 	sw.Signal.RLock()
 	defer sw.Signal.RUnlock()
 
 	println("Unlocked")
-	proxyDestination, _ := sw.Proxy.Load().(string)
-	println("proxyDestination", proxyDestination)
+	proxyDestination, ok := sw.Proxy.Load().(string)
 
-	proxyReq(w, r, proxyDestination)
+	if ok {
+		println("proxyDestination", proxyDestination)
+		proxyReq(w, r, proxyDestination)
+	} else {
+		message := []byte("Couldn't find pod to proxy")
+		w.Write(message)
+	}
 
 	go sw.Stop()
 }

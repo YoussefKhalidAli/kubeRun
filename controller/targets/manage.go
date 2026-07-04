@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"kuberun.com/controller/agent"
+	"kuberun.com/controller/scale"
 	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
 )
@@ -27,6 +28,16 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 		SelectorMap:  svc.Selector,
 	}
 
+	target := store.Targets[key]
+	target.Server.ScaleUp = func() {
+		target.Mux.Lock()
+		shouldWake := target.Status != "Awake" && target.Status != "Waking"
+		if shouldWake {
+			go scale.ScaleResource(key, 1)
+			target.Status = "Waking"
+		}
+		target.Mux.Unlock()
+	}
 }
 
 func DeleteTarget(clientset *kubernetes.Clientset, key string) {

@@ -2,12 +2,11 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-db
-  namespace: run
   labels:
     app: datastore
 spec:
   serviceName: "database-svc"
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app: datastore
@@ -21,21 +20,15 @@ spec:
           image: postgres:15-alpine
           ports:
             - containerPort: 5432
-  volumeClaimTemplates:
-    - metadata:
-        name: db-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
+          env:
+            - name: POSTGRES_PASSWORD
+              value: "mysecurepassword"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: database-svc
-  namespace: run
-  annotations:
+  labels:
     kuberun/run: "true"
 spec:
   clusterIP: None
