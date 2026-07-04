@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-db
+  namespace: run
+  labels:
+    app: datastore
+spec:
+  serviceName: "database-svc"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datastore
+  template:
+    metadata:
+      labels:
+        app: datastore
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-svc
+  namespace: run
+  annotations:
+    kuberun/run: "true"
+spec:
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: datastore
