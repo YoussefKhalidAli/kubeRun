@@ -13,6 +13,5 @@ func AddSlice(owner string, endpoints []discoveryv1.Endpoint) {
 	for _, endpoint := range endpoints {
 		addresses = append(addresses, endpoint.Addresses[0])
 	}
-	agent.UpdateAgentCM(clientset,
-		service.GetHeadlessServiceKey(owner), "add", addresses...)
+	agent.UpdateAgentCM(clientset, service.GetHeadlessServiceKey(owner), "add", addresses...)
 }

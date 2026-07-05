@@ -2,6 +2,7 @@ package informer
 
 import (
 	"strings"
+	"time"
 
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/informers"
@@ -23,6 +24,7 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 			if len(eSlice.Endpoints) > 0 {
 				selector := eSlice.Endpoints[0].Hostname
 				if selector != nil && !strings.Contains(*selector, "kuberun-controller") {
+					time.Sleep(2 * time.Second)
 					owner := eSlice.ObjectMeta.OwnerReferences[0].Name
 					endpoints := eSlice.Endpoints
 					slice.AddSlice(owner, endpoints)

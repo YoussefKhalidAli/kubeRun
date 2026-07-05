@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -29,6 +28,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip, err := io.ReadAll(r.Body)
+	println("Hit:", string(ip))
 	if err != nil {
 		utils.HandelError(err, "KRC9010", "Couldn't parse alert body.")
 	}
@@ -40,6 +40,4 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 	target.LastAccessed = time.Now()
 	target.Mux.Unlock()
 
-	println(ip)
-	fmt.Printf("Hit %v", target)
 }
