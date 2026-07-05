@@ -28,6 +28,10 @@
     - Add headless services map.
       - Before: No way to alert controller of a hit on headless service.
       - Now: controller updates `headless_map` in the agent config. The agent uses this to translate pod IPs to target keys when dealing with headless services.
+- 0.4.4: 
+    - Scale statefulsets.
+      - Before: Only scale deployments.
+      - Now: Scale statefulsets.
 
 ---
 
