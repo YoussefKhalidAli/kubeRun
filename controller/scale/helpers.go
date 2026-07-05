@@ -87,7 +87,7 @@ func WaitForPodReady(resource *store.TargetDto) string {
 		for _, pod := range pods.Items {
 			for _, condition := range pod.Status.Conditions {
 				if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
-					return pod.Status.HostIP
+					return pod.Status.PodIP
 				}
 			}
 		}
