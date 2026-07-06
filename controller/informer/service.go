@@ -33,7 +33,6 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 
 			target := store.Targets[key]
 			target.Mux.Lock()
-			println("Deleting svc:")
 			store.PrintTargets()
 			if !strings.Contains(target.Status, "ing") {
 				target.Mux.Unlock()

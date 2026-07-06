@@ -32,6 +32,13 @@
     - Scale statefulsets.
       - Before: Only scale deployments.
       - Now: Scale statefulsets.
+- 0.4.41: 
+    - Replace service.
+      - Before: Problems with directing headless services to `kuberun-controller` due to port mismatch.
+      - Now: Replace headless services to normal ClusterIP services during scale to 0.
+    - Add key label.
+      - Before: Key was inferred based on `ClusterIP`, which causes issues when temperarly replacing headless services to clusterIP services.
+      - Now: Add the key to the service data as a label `kuberun/key`.
 
 ---
 
