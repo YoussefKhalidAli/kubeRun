@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"kuberun.com/controller/utils"
 )
@@ -31,7 +32,6 @@ func New() *Switch {
 	sw := &Switch{
 		Port: port,
 	}
-	sw.Signal.Lock()
 	Switches++
 	return sw
 }
@@ -42,12 +42,17 @@ func (sw *Switch) Start() {
 	mux.HandleFunc("/", sw.SwitchHandler)
 	sw.mux = mux
 	sw.server = &http.Server{
-		Addr:    fmt.Sprintf(":%v", sw.Port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%v", sw.Port),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
+
 	server := sw.server
 	sw.shutdownOnce = sync.Once{}
 	sw.serverMu.Unlock()
+	sw.Signal.Lock()
 
 	fmt.Printf("switch number %v listener booted successfully\n", sw.Port)
 	err := server.ListenAndServe()
@@ -62,11 +67,13 @@ func (sw *Switch) Stop() {
 	once := &sw.shutdownOnce
 	sw.serverMu.Unlock()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	once.Do(func() {
 		if server != nil {
-			server.Shutdown(context.Background())
+			server.Shutdown(ctx)
 		}
-		sw.Signal.Lock()
 	})
 }
 

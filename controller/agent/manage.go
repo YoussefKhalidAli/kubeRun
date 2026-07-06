@@ -14,7 +14,7 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action string, targetIPs ...string) error {
+func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action string, targetIPs ...string) {
 	ctx := context.Background()
 
 	cm, err := clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Get(ctx, store.KubeRunAgentConfigName, metav1.GetOptions{})
@@ -77,8 +77,6 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 	if err != nil {
 		utils.HandelError(err, "KRC1440", "failed to marshal updated config payload")
 	}
-
-	return nil
 }
 
 func UpdateAgents(ip string) {

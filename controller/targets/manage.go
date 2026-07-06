@@ -1,7 +1,6 @@
 package targets
 
 import (
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -48,12 +47,9 @@ func DeleteTarget(clientset *kubernetes.Clientset, key string) {
 		target.Server.Stop()
 		target.Server.Signal.Unlock()
 	}
-
-	err := agent.UpdateAgentCM(clientset, key, "delete")
-	if err != nil {
-		fmt.Printf("Error occurred while updating agent config map: _%v_", err)
-	}
+	agent.UpdateAgentCM(clientset, key, "delete")
 	delete(store.Targets, key)
+	store.PrintTargets()
 }
 
 func MapServicePorts(portsMap []corev1.ServicePort) *[]int {
