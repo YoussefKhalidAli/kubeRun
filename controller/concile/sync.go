@@ -1,9 +1,13 @@
-package kubernetes
+package concile
 
 import (
 	"time"
 
+	"kuberun.com/controller/client"
+	"kuberun.com/controller/resource"
+	"kuberun.com/controller/scale"
 	"kuberun.com/controller/store"
+	"kuberun.com/controller/targets"
 )
 
 func SyncLoop() {
@@ -29,7 +33,7 @@ func sync() {
 			targetVal.Status = "Sleeping"
 			targetVal.Mux.Unlock()
 
-			ScaleResource(targetVal, 0)
+			scale.ScaleResource(index, 0)
 		} else {
 			targetVal.Mux.Unlock()
 		}
@@ -37,11 +41,12 @@ func sync() {
 }
 
 func checkResource(target *store.TargetDto, index string) {
+	clientset := client.GetClientset()
 
-	resourceName, resource := FindResource(GetClientset(), target.SelectorMap, target.Namespace, index)
+	resourceName, resource := resource.FindResource(clientset, target.SelectorMap, target.Namespace, index)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
-		RemoveService(clientset, index)
+		targets.DeleteTarget(clientset, index)
 		return
 	} else if resourceName == "" && resource == "" {
 		return

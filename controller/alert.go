@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"kuberun.com/controller/kubernetes"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
 )
@@ -30,6 +28,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip, err := io.ReadAll(r.Body)
+	println("Hit:", string(ip))
 	if err != nil {
 		utils.HandelError(err, "KRC9010", "Couldn't parse alert body.")
 	}
@@ -39,12 +38,6 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 
 	target.Mux.Lock()
 	target.LastAccessed = time.Now()
-	println(ip)
-	shouldWake := target.Status != "Awake" && target.Status != "Waking"
-	if shouldWake {
-		target.Status = "Waking"
-		go kubernetes.ScaleResource(target, 1, string(ip))
-	}
 	target.Mux.Unlock()
-	fmt.Printf("Hit %v", target)
+
 }

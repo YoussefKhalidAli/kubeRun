@@ -11,5 +11,11 @@ import (
 func Alert(ip string) {
 	controllerUrl := fmt.Sprintf("http://%v/alert", store.Config.KubeRunController)
 	println(controllerUrl)
-	http.Post(controllerUrl, "text/plain", strings.NewReader(ip))
+
+	target := ip
+	if val, exists := store.Config.HeadlessMap[ip]; exists {
+		target = val
+	}
+
+	http.Post(controllerUrl, "text/plain", strings.NewReader(target))
 }

@@ -17,23 +17,25 @@ type TargetDto struct {
 	ServiceName  string
 	Status       string
 	UpdateMarker string
-	Mux          sync.Mutex
-	Server       *server.Switch
+	Mux          sync.Mutex     `json:"-"`
+	Server       *server.Switch `json:"-"`
+	Endpoints    []string
 	ServicePorts *[]int
 	SelectorMap  map[string]string
 }
 
 type AgentConfig struct {
-	KubeRunController string   `yaml:"kube_run_controller"`
-	Update            bool     `yaml:"update"`
-	Ips               []string `yaml:"ips"`
+	KubeRunController string            `yaml:"kube_run_controller"`
+	Update            bool              `yaml:"update"`
+	Ips               []string          `yaml:"ips"`
+	HeadlessMap       map[string]string `yaml:"headless_map"`
 }
 
 var Targets map[string]*TargetDto
 
 // Configs
 var syncMinutes time.Duration = 1
-var SyncTime = syncMinutes * time.Minute / 3
+var SyncTime = syncMinutes * time.Minute / 2
 var KubeRunNamespace = "default"
 var KubeRunAgentConfigName = "kuberun-agent-config"
 var KubeRunAgent = "kuberun-agent.default.svc.cluster.local"
@@ -48,4 +50,15 @@ func PrintTargets() {
 		return
 	}
 	fmt.Println(string(jsonData))
+}
+
+func (t *TargetDto) MarshalJSON() ([]byte, error) {
+	type Alias TargetDto
+	return json.Marshal(&struct {
+		*Alias
+		Mux    any `json:"Mux,omitempty"`    // Overwrite and ignore
+		Server any `json:"Server,omitempty"` // Overwrite and ignore
+	}{
+		Alias: (*Alias)(t),
+	})
 }

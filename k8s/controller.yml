@@ -15,9 +15,10 @@ spec:
         KubeRun: Controller
     spec:
       serviceAccountName: kuberun-controller-sa
+      subdomain: kuberun-controller
       containers:
         - name: kuberun-controller
-          image: youssefkali/kuberun-controller:v0.3.2
+          image: youssefkali/kuberun-controller:v0.4.41
           imagePullPolicy: Always
           ports:
             - name: alert

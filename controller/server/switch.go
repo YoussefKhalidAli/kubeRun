@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"kuberun.com/controller/utils"
 )
@@ -21,6 +22,7 @@ type Switch struct {
 	Proxy        atomic.Value
 	Signal       sync.RWMutex
 	shutdownOnce sync.Once
+	ScaleUp      func()
 }
 
 var Switches int = 0
@@ -30,7 +32,6 @@ func New() *Switch {
 	sw := &Switch{
 		Port: port,
 	}
-	sw.Signal.Lock()
 	Switches++
 	return sw
 }
@@ -41,12 +42,17 @@ func (sw *Switch) Start() {
 	mux.HandleFunc("/", sw.SwitchHandler)
 	sw.mux = mux
 	sw.server = &http.Server{
-		Addr:    fmt.Sprintf(":%v", sw.Port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%v", sw.Port),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
+
 	server := sw.server
 	sw.shutdownOnce = sync.Once{}
 	sw.serverMu.Unlock()
+	sw.Signal.Lock()
 
 	fmt.Printf("switch number %v listener booted successfully\n", sw.Port)
 	err := server.ListenAndServe()
@@ -61,23 +67,31 @@ func (sw *Switch) Stop() {
 	once := &sw.shutdownOnce
 	sw.serverMu.Unlock()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	once.Do(func() {
 		if server != nil {
-			server.Shutdown(context.Background())
+			server.Shutdown(ctx)
 		}
-		sw.Signal.Lock()
 	})
 }
 
 func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
+	sw.ScaleUp()
 	sw.Signal.RLock()
 	defer sw.Signal.RUnlock()
 
 	println("Unlocked")
-	proxyDestination, _ := sw.Proxy.Load().(string)
-	println("proxyDestination", proxyDestination)
+	proxyDestination, ok := sw.Proxy.Load().(string)
 
-	proxyReq(w, r, proxyDestination)
+	if ok {
+		println("proxyDestination", proxyDestination)
+		proxyReq(w, r, proxyDestination)
+	} else {
+		message := []byte("Couldn't find pod to proxy")
+		w.Write(message)
+	}
 
 	go sw.Stop()
 }
