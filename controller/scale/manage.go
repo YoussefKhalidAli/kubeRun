@@ -52,7 +52,7 @@ func ScaleResource(key string, count int32) {
 
 	if count == 0 {
 		go resource.Server.Start()
-		PatchService(resource, count)
+		PatchService(key, count)
 		resource.Mux.Lock()
 		resource.Status = "Asleep"
 		resource.Mux.Unlock()
@@ -65,7 +65,7 @@ func ScaleResource(key string, count int32) {
 			resource.Server.Proxy.Store("http://" + key)
 		}
 
-		PatchService(resource, count)
+		PatchService(key, count)
 		time.Sleep(5 * time.Second)
 		resource.Server.Signal.Unlock()
 		resource.Mux.Lock()

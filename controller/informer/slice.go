@@ -7,7 +7,9 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+	"kuberun.com/controller/service"
 	"kuberun.com/controller/slice"
+	"kuberun.com/controller/store"
 )
 
 func endpointSlicesInformer(factory informers.SharedInformerFactory) {
@@ -23,9 +25,14 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 			}
 			if len(eSlice.Endpoints) > 0 {
 				selector := eSlice.Endpoints[0].Hostname
-				if selector != nil && !strings.Contains(*selector, "kuberun-controller") {
+				owner := eSlice.ObjectMeta.OwnerReferences[0].Name
+
+				shouldAddSlice := selector != nil &&
+					!strings.Contains(*selector, "kuberun-controller") &&
+					store.Targets[service.GetHeadlessServiceKey(owner)] != nil
+
+				if shouldAddSlice {
 					time.Sleep(2 * time.Second)
-					owner := eSlice.ObjectMeta.OwnerReferences[0].Name
 					endpoints := eSlice.Endpoints
 					slice.AddSlice(owner, endpoints)
 				}

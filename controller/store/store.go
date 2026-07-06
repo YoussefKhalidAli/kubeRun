@@ -35,7 +35,7 @@ var Targets map[string]*TargetDto
 
 // Configs
 var syncMinutes time.Duration = 1
-var SyncTime = syncMinutes * time.Minute
+var SyncTime = syncMinutes * time.Minute / 2
 var KubeRunNamespace = "default"
 var KubeRunAgentConfigName = "kuberun-agent-config"
 var KubeRunAgent = "kuberun-agent.default.svc.cluster.local"

@@ -33,10 +33,12 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 		target.Mux.Lock()
 		shouldWake := target.Status != "Awake" && target.Status != "Waking"
 		if shouldWake {
-			go scale.ScaleResource(key, 1)
 			target.Status = "Waking"
+			target.Mux.Unlock()
+			go scale.ScaleResource(key, 1)
+		} else {
+			target.Mux.Unlock()
 		}
-		target.Mux.Unlock()
 	}
 }
 

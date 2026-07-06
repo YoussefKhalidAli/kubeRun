@@ -1,6 +1,8 @@
 package informer
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
@@ -18,19 +20,27 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
 			svc := obj.(*corev1.Service)
-			service.AddService(svc.Spec, svc.ObjectMeta, clientset)
+			if store.Targets[service.GetHeadlessServiceKey(svc.ObjectMeta.Name)] == nil {
+				service.AddService(svc.Spec, svc.ObjectMeta, clientset)
+			}
 		},
 		DeleteFunc: func(obj any) {
 			svc, ok := obj.(*corev1.Service)
 			if !ok {
 				panic("couldn't convert object to service")
 			}
-			key := svc.Spec.ClusterIP
-			if key == "None" {
-				key = service.GetHeadlessServiceKey(svc.ObjectMeta.Name)
-			}
-			targets.DeleteTarget(clientset, key)
+			key := svc.Labels["kuberun/key"]
+
+			target := store.Targets[key]
+			target.Mux.Lock()
+			println("Deleting svc:")
 			store.PrintTargets()
+			if !strings.Contains(target.Status, "ing") {
+				target.Mux.Unlock()
+				targets.DeleteTarget(clientset, key)
+			} else {
+				target.Mux.Unlock()
+			}
 		},
 		UpdateFunc: func(old any, obj any) {
 			svc := obj.(*corev1.Service)
