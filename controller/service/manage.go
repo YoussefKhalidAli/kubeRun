@@ -27,20 +27,14 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 		agent.UpdateAgents(key)
 		agent.UpdateAgentCM(clientset, key, "add")
 	}
-
 	targets.CreateTarget(key, svc, metadata, resourceName, resourceKind)
+	labelService(clientset, metadata.Name, metadata.Namespace, key)
 
 	store.PrintTargets()
 }
 
 func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Service, clientset *kubernetes.Clientset) {
-	var key string
-
-	if clussterIp == "None" {
-		key = GetHeadlessServiceKey(service.ObjectMeta.Name)
-	} else {
-		key = clussterIp
-	}
+	key := service.Labels["kuberun/key"]
 	target := store.Targets[key]
 
 	if target == nil {
@@ -60,7 +54,7 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 	target.ServicePorts = targets.MapServicePorts(service.Spec.Ports)
 	target.Mux.Unlock()
 	if targetStatus == "Asleep" && service.Spec.Selector["KubeRun"] != "Controller" {
-		scale.PatchService(target, 0)
+		scale.PatchService(key, 0)
 	}
 }
 
