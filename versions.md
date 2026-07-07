@@ -43,7 +43,11 @@
     - Handle switch ports.
       - Before: First service gets port 4445, following services get +1. No way to track unused ports (Deleted services).
       - Now: First service gets port 200, following services get +1. If a service is deleted that port is released. Port `4444` is always reserved.
-      - 
+- 0.4.43: 
+    - Wait for target creation before adding slice.
+      - Before: 2 second wait before adding slice to check if target was created.
+      - Now: Check if target was created before adding slice.
+      - Note: The check tries to find target every second and times out after *5* seconds. 
 ---
 
 ## Agent

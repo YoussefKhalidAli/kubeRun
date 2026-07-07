@@ -29,14 +29,31 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 
 				shouldAddSlice := selector != nil &&
 					!strings.Contains(*selector, "kuberun-controller") &&
-					store.Targets[service.GetHeadlessServiceKey(owner)] != nil
+					waitForTargetCreation(service.GetHeadlessServiceKey(owner))
 
 				if shouldAddSlice {
-					time.Sleep(2 * time.Second)
 					endpoints := eSlice.Endpoints
 					slice.AddSlice(owner, endpoints)
 				}
 			}
 		},
 	})
+}
+
+func waitForTargetCreation(key string) bool {
+
+	ticker := time.NewTicker(time.Second / 2)
+	defer ticker.Stop()
+	timeout := time.After(5 * time.Second)
+
+	for {
+		select {
+		case <-ticker.C:
+			if store.Targets[key] != nil {
+				return true
+			}
+		case <-timeout:
+			return false
+		}
+	}
 }
