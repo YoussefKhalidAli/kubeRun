@@ -66,7 +66,7 @@ func ScaleResource(key string, count int32) {
 		}
 
 		PatchService(key, count)
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Second)
 		resource.Server.Signal.Unlock()
 		resource.Mux.Lock()
 		resource.Status = "Awake"
