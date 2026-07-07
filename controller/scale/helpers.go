@@ -117,6 +117,10 @@ func replaceService(resource *store.TargetDto, clientset *kubernetes.Clientset, 
 }
 
 func WaitForPodReady(resource *store.TargetDto) string {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	timeout := time.After(time.Minute)
+
 	clientset := client.GetClientset()
 
 	resource.Mux.Lock()
@@ -132,20 +136,24 @@ func WaitForPodReady(resource *store.TargetDto) string {
 	labelSelector := strings.Join(labels, ",")
 
 	for {
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
-			LabelSelector: labelSelector,
-		})
-		if err != nil {
-			utils.HandelError(err, "KRC9061", fmt.Sprintf("Couldn't get pods for %v", name))
-			return ""
-		}
-		for _, pod := range pods.Items {
-			for _, condition := range pod.Status.Conditions {
-				if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
-					return pod.Status.PodIP
+		select {
+		case <-ticker.C:
+			pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+				LabelSelector: labelSelector,
+			})
+			if err != nil {
+				utils.HandelError(err, "KRC9061", fmt.Sprintf("Couldn't get pods for %v", name))
+				return ""
+			}
+			for _, pod := range pods.Items {
+				for _, condition := range pod.Status.Conditions {
+					if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+						return pod.Status.PodIP
+					}
 				}
 			}
+		case <-timeout:
+			return ""
 		}
-		time.Sleep(2 * time.Second)
 	}
 }
