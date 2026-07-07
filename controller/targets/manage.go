@@ -47,6 +47,11 @@ func DeleteTarget(clientset *kubernetes.Clientset, key string) {
 		target.Server.Stop()
 		target.Server.Signal.Unlock()
 	}
+
+	server.MarkerMux.Lock()
+	server.Release(target.Server.Port)
+	server.MarkerMux.Unlock()
+
 	agent.UpdateAgentCM(clientset, key, "delete")
 	delete(store.Targets, key)
 	store.PrintTargets()

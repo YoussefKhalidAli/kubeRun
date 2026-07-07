@@ -35,11 +35,10 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			target.Mux.Lock()
 			store.PrintTargets()
 			if !strings.Contains(target.Status, "ing") {
-				target.Mux.Unlock()
 				targets.DeleteTarget(clientset, key)
-			} else {
 				target.Mux.Unlock()
 			}
+			target.Mux.Unlock()
 		},
 		UpdateFunc: func(old any, obj any) {
 			svc := obj.(*corev1.Service)

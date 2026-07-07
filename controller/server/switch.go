@@ -25,14 +25,47 @@ type Switch struct {
 	ScaleUp      func()
 }
 
-var Switches int = 0
+const minPort, maxPort = 200, 60000
+
+var (
+	MarkerMux    sync.Mutex
+	bitmap       [(maxPort - minPort + 1 + 63) / 64]uint64
+	switchMarker = minPort
+)
+
+func Reserve(port int) {
+	index := port - minPort
+	bitmap[(index)/64] |= 1 << uint((index)%64)
+	switchMarker++
+}
+
+func Release(port int) {
+	index := port - minPort
+	bitmap[(index)/64] &^= 1 << uint((index)%64)
+
+	if port < switchMarker {
+		switchMarker = port
+	}
+}
+
+func findPort() {
+	for switchMarker <= maxPort {
+		index := switchMarker - minPort
+		if bitmap[index/64]&(1<<uint(index%64)) == 0 {
+			return
+		}
+		switchMarker++
+	}
+}
 
 func New() *Switch {
-	port := Switches + 4445
+	MarkerMux.Lock()
+	findPort()
+	Reserve(switchMarker)
+	MarkerMux.Unlock()
 	sw := &Switch{
-		Port: port,
+		Port: switchMarker,
 	}
-	Switches++
 	return sw
 }
 
