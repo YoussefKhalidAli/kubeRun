@@ -39,7 +39,11 @@
     - Add key label.
       - Before: Key was inferred based on `ClusterIP`, which causes issues when temperarly replacing headless services to clusterIP services.
       - Now: Add the key to the service data as a label `kuberun/key`.
-
+- 0.4.42: 
+    - Handle switch ports.
+      - Before: First service gets port 4445, following services get +1. No way to track unused ports (Deleted services).
+      - Now: First service gets port 200, following services get +1. If a service is deleted that port is released. Port `4444` is always reserved.
+      - 
 ---
 
 ## Agent
