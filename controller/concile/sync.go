@@ -37,6 +37,7 @@ func sync() {
 		} else {
 			targetVal.Mux.Unlock()
 		}
+		store.PrintTargets()
 	}
 }
 

@@ -44,13 +44,8 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 func DeleteTarget(clientset *kubernetes.Clientset, key string) {
 	target := store.Targets[key]
 	if target.Status == "Asleep" {
-		target.Server.Stop()
-		target.Server.Signal.Unlock()
+		target.Server.Kill()
 	}
-
-	server.MarkerMux.Lock()
-	server.Release(target.Server.Port)
-	server.MarkerMux.Unlock()
 
 	agent.UpdateAgentCM(clientset, key, "delete")
 	delete(store.Targets, key)
