@@ -22,7 +22,7 @@ kubeRun is composed of two primary components:
    - Handles the idle detection and scales workloads down to 0 replicas when there is no traffic.
 2. **kubeRun Agent**: 
    - Runs as a lightweight `DaemonSet` on every node in the cluster.
-   - Operates with `privileged: true` and `hostNetwork: true` to bind to Linux Netlink conntrack multicast groups (`nf_conntrack`).
+   - Operates with `NET_ADMIN` and `hostNetwork: true` to bind to Linux Netlink conntrack multicast groups (`nf_conntrack`).
    - Instantly detects new connection attempts to tracked service IPs at the kernel level and alerts the controller to scale the corresponding workload back up.
 
 ---

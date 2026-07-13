@@ -32,11 +32,12 @@ spec:
               containerPort: 4443
               hostPort: 4443
           securityContext:
-            privileged: true
+            privileged: false
             capabilities:
+              drop:
+                - ALL
               add:
                 - NET_ADMIN
-                - SYS_ADMIN
           volumeMounts:
             - name: config-volume
               mountPath: /etc/agent-config
