@@ -27,6 +27,13 @@ spec:
         - name: agent
           image: youssefkali/kuberun-agent:v0.3.0
           imagePullPolicy: Always
+          resources:
+               requests:
+                 memory: "16Mi"
+                 cpu: "10m"
+               limits:
+                 memory: "32Mi"
+                 cpu: "50m"
           ports:
             - name: updates
               containerPort: 4443
