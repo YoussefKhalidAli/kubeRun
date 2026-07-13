@@ -18,8 +18,11 @@ spec:
       subdomain: kuberun-controller
       containers:
         - name: kuberun-controller
-          image: youssefkali/kuberun-controller:v0.4.5
+          image: youssefkali/kuberun-controller:v0.4.51
           imagePullPolicy: Always
+          env:
+            - name: SYNC_MINUTES
+              value: "15"
           ports:
             - name: alert
               containerPort: 4444

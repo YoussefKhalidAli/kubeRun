@@ -52,6 +52,10 @@
     - Switch per port.
       - Before: 1 switch per service. This caused misdirection when using browsers to access k8s resources.
       - Now: 1 switch per port. This way, every switch know where to direct traffic without need to check req port.
+- 0.4.51: 
+    - Read sync minutes from env.
+      - Before: Hard coded.
+      - Now: Read from env.
 ---
 
 ## Agent

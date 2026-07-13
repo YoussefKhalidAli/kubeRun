@@ -3,6 +3,8 @@ package store
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -34,7 +36,7 @@ type AgentConfig struct {
 var Targets map[string]*TargetDto
 
 // Configs
-var syncMinutes time.Duration = 1
+var syncMinutes time.Duration = getSyncMinutes()
 var SyncTime = syncMinutes * time.Minute / 2
 var KubeRunNamespace = "default"
 var KubeRunAgentConfigName = "kuberun-agent-config"
@@ -61,4 +63,21 @@ func (t *TargetDto) MarshalJSON() ([]byte, error) {
 	}{
 		Alias: (*Alias)(t),
 	})
+}
+
+func getSyncMinutes() time.Duration {
+	const defaultMinutes = 15
+
+	raw := os.Getenv("SYNC_MINUTES")
+	if raw == "" {
+		return defaultMinutes
+	}
+
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed <= 0 {
+		fmt.Printf("Invalid SYNC_MINUTES value %q, falling back to default of %v minute(s)\n", raw, defaultMinutes)
+		return defaultMinutes
+	}
+
+	return time.Duration(parsed)
 }
