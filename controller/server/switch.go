@@ -61,11 +61,11 @@ func findPort() {
 func New() *Switch {
 	MarkerMux.Lock()
 	findPort()
-	Reserve(switchMarker)
-	MarkerMux.Unlock()
 	sw := &Switch{
 		Port: switchMarker,
 	}
+	Reserve(switchMarker)
+	MarkerMux.Unlock()
 	return sw
 }
 
@@ -108,6 +108,15 @@ func (sw *Switch) Stop() {
 			server.Shutdown(ctx)
 		}
 	})
+}
+
+func (sw *Switch) Kill() {
+	sw.Stop()
+	if sw.Port != 0 {
+		sw.Signal.Unlock()
+		Release(sw.Port)
+	}
+	sw.Port = 0
 }
 
 func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {

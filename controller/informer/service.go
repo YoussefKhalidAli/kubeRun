@@ -36,7 +36,6 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			store.PrintTargets()
 			if !strings.Contains(target.Status, "ing") {
 				targets.DeleteTarget(clientset, key)
-				target.Mux.Unlock()
 			}
 			target.Mux.Unlock()
 		},

@@ -72,7 +72,11 @@ func DeleteResource(clusterIP string) {
 	target.Mux.Lock()
 	target.Resource = ""
 	target.ResourceName = ""
-	target.Status = "Awake"
+
+	if target.Status == "Asleep" {
+		target.Server.Kill()
+	}
+
 	target.Mux.Unlock()
 	println("deleted resource")
 }
