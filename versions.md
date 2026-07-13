@@ -48,6 +48,10 @@
       - Before: 2 second wait before adding slice to check if target was created.
       - Now: Check if target was created before adding slice.
       - Note: The check tries to find target every second and times out after *5* seconds. 
+- 0.4.5: 
+    - Switch per port.
+      - Before: 1 switch per service. This caused misdirection when using browsers to access k8s resources.
+      - Now: 1 switch per port. This way, every switch know where to direct traffic without need to check req port.
 ---
 
 ## Agent
