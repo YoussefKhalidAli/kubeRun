@@ -1,0 +1,86 @@
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kuberun-agent
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: kuberun-agent
+spec:
+  selector:
+    matchLabels:
+      name: kuberun-agent
+  template:
+    metadata:
+      {{- if .Values.agent.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.agent.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        name: kuberun-agent
+        {{- if .Values.agent.podLabels }}
+        {{- toYaml .Values.agent.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        {{- if .Values.agent.extraTolerations }}
+        {{- toYaml .Values.agent.extraTolerations | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          ports:
+            - name: updates
+              containerPort: 4443
+              hostPort: 4443
+          securityContext:
+            privileged: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_ADMIN
+                - SYS_ADMIN
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/agent-config
+              readOnly: true
+            - name: host-netns
+              mountPath: /var/run/netns
+              readOnly: true
+            - name: hostproc
+              mountPath: /host/proc
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Values.agent.configMapName }}
+        - name: host-netns
+          hostPath:
+            path: /var/run/netns
+        - name: hostproc
+          hostPath:
+            path: /proc
+      {{- if .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.agent.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.affinity | nindent 8 }}
+      {{- end }}

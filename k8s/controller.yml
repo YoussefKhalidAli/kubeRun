@@ -5,6 +5,9 @@ metadata:
   labels:
     KubeRun: Controller
 spec:
+  # DO NOT increase replicas. There is no leader election and controller state (store.Targets,
+  # in-memory port allocations, HTTP switch servers) is not shared across replicas. Running more
+  # than 1 replica will cause conflicting scale decisions and duplicate/broken switch ports.
   replicas: 1
   selector:
     matchLabels:

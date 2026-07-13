@@ -1,0 +1,70 @@
+# Shared Configurations
+namespace: "default"  # Single source of truth. All resources will install into this namespace.
+
+imagePullSecrets: []
+
+rbac:
+  create: true
+
+# Controller Configurations
+controller:
+  image:
+    repository: youssefkali/kuberun-controller
+    tag: "v0.4.52"
+    pullPolicy: Always
+
+  # real math: store.SyncTime = syncMinutes * time.Minute / 2.
+  # syncMinutes=15 means workloads scale to zero after ~7.5 minutes of no traffic.
+  syncMinutes: 1
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      # memory scales with cluster size / number of kuberun/run=true resources tracked.
+      # Tune based on observed usage in your cluster.
+      memory: 128Mi
+
+  nodeSelector: {}
+  tolerations: {}
+  affinity: {}
+
+  podAnnotations: {}
+  podLabels: {}
+
+  serviceAccount:
+    create: true
+    name: ""
+
+  extraEnv: []
+
+# Agent Configurations
+agent:
+  image:
+    repository: youssefkali/kuberun-agent
+    tag: "v0.3.0"
+    pullPolicy: Always
+
+  configMapName: "kuberun-agent-config"
+
+  config:
+    # Enables GroupCTUpdate netlink group. Also fires on established-connection
+    # updates, not just new connections.
+    update: false
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+
+  extraTolerations: []
+  nodeSelector: {}
+  affinity: {}
+
+  podAnnotations: {}
+  podLabels: {}

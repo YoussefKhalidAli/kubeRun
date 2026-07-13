@@ -1,7 +1,7 @@
 |operator|current version|
 | -------- | ------- |
-|controller| 0.3.2|
-|agent| 0.2.0|
+|controller| 0.4.52|
+|agent| 0.3.0|
 
 ## Controller
 - 0.3.2: 

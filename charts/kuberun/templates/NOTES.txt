@@ -1,0 +1,14 @@
+kubeRun controller has been successfully installed!
+
+Check the status of the controller pod:
+  kubectl get pods -n {{ .Values.namespace }} -l "KubeRun=Controller"
+
+Check the status of the agent daemonset:
+  kubectl get pods -n {{ .Values.namespace }} -l "name=kuberun-agent"
+
+Follow the controller's logs:
+  kubectl logs -f -n {{ .Values.namespace }} -l "KubeRun=Controller"
+
+IMPORTANT NOTES:
+1. Single Replica Requirement: The controller runs as a single replica. Do NOT scale up or increase the replica count beyond 1. There is no leader election and controller state (in-memory port allocations, HTTP switch servers) is not shared.
+2. Namespace Enforcement: kubeRun is configured to run inside the namespace "{{ .Values.namespace }}". The Helm release namespace must match this values.yaml namespace.

@@ -1,0 +1,15 @@
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberun-controller
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    KubeRun: Controller
+  type: ClusterIP
+  ports:
+    - name: tcp-4444
+      protocol: TCP
+      port: 4444
+      targetPort: 4444
