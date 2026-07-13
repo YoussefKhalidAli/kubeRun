@@ -23,6 +23,13 @@ spec:
         - name: kuberun-controller
           image: youssefkali/kuberun-controller:v0.4.51
           imagePullPolicy: Always
+          resources:
+               requests:
+                 memory: "64Mi"
+                 cpu: "50m"
+               limits:
+                 memory: "128Mi"
+                 cpu: "150m"
           env:
             - name: SYNC_MINUTES
               value: "15"
