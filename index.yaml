@@ -1,0 +1,24 @@
+apiVersion: v1
+entries:
+  kuberun:
+  - apiVersion: v2
+    appVersion: 0.4.52
+    created: "2026-07-13T21:16:52.362390905Z"
+    description: Scale-to-zero operator for Kubernetes that tracks connection state
+      with conntrack and scales workloads down and back up.
+    digest: f3e83eca0c90fe217c2737fbd3ee1f5130406e00fddb9a1f24b883b900f99c00
+    home: https://github.com/YoussefKhalidAli/kubeRun
+    keywords:
+    - kubernetes
+    - scale-to-zero
+    - autoscaling
+    - operator
+    - conntrack
+    name: kuberun
+    sources:
+    - https://github.com/YoussefKhalidAli/kubeRun
+    type: application
+    urls:
+    - https://youssefkhalidali.github.io/kubeRun/kuberun-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-07-13T21:16:52.361493522Z"
