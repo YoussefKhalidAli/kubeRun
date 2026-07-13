@@ -15,7 +15,8 @@ import (
 )
 
 type Switch struct {
-	Port         int
+	SwitchPort   int
+	TargetPort   string
 	mux          *http.ServeMux
 	server       *http.Server
 	serverMu     sync.Mutex
@@ -58,11 +59,12 @@ func findPort() {
 	}
 }
 
-func New() *Switch {
+func New(targetPort string) *Switch {
 	MarkerMux.Lock()
 	findPort()
 	sw := &Switch{
-		Port: switchMarker,
+		SwitchPort: switchMarker,
+		TargetPort: targetPort,
 	}
 	Reserve(switchMarker)
 	MarkerMux.Unlock()
@@ -75,7 +77,7 @@ func (sw *Switch) Start() {
 	mux.HandleFunc("/", sw.SwitchHandler)
 	sw.mux = mux
 	sw.server = &http.Server{
-		Addr:              fmt.Sprintf(":%v", sw.Port),
+		Addr:              fmt.Sprintf(":%v", sw.SwitchPort),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -87,10 +89,10 @@ func (sw *Switch) Start() {
 	sw.serverMu.Unlock()
 	sw.Signal.Lock()
 
-	fmt.Printf("switch number %v listener booted successfully\n", sw.Port)
+	fmt.Printf("switch number %v listener booted successfully\n", sw.SwitchPort)
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		utils.HandelError(err, "KRC9019", fmt.Sprintf("Couldn't boot up switch number %v server.", sw.Port))
+		utils.HandelError(err, "KRC9019", fmt.Sprintf("Couldn't boot up switch number %v server.", sw.SwitchPort))
 	}
 }
 
@@ -112,11 +114,11 @@ func (sw *Switch) Stop() {
 
 func (sw *Switch) Kill() {
 	sw.Stop()
-	if sw.Port != 0 {
+	if sw.SwitchPort != 0 {
 		sw.Signal.Unlock()
-		Release(sw.Port)
+		Release(sw.SwitchPort)
 	}
-	sw.Port = 0
+	sw.SwitchPort = 0
 }
 
 func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +131,7 @@ func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
 
 	if ok {
 		println("proxyDestination", proxyDestination)
-		proxyReq(w, r, proxyDestination)
+		proxyReq(w, r, proxyDestination, sw.TargetPort)
 	} else {
 		message := []byte("Couldn't find pod to proxy")
 		w.Write(message)
@@ -138,23 +140,14 @@ func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	go sw.Stop()
 }
 
-func proxyReq(w http.ResponseWriter, req *http.Request, destination string) {
+func proxyReq(w http.ResponseWriter, req *http.Request, destination string, targetPort string) {
 	target, err := url.Parse(destination)
 	if err != nil {
 		http.Error(w, "invalid destination", http.StatusBadGateway)
 		return
 	}
 
-	_, port, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		if target.Scheme == "http" {
-			port = "80"
-		} else {
-			port = "443"
-		}
-	}
-
-	target.Host = net.JoinHostPort(target.Hostname(), port)
+	target.Host = net.JoinHostPort(target.Hostname(), targetPort)
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	req.URL.Host = target.Host
 	req.URL.Scheme = target.Scheme

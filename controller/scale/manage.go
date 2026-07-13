@@ -51,7 +51,10 @@ func ScaleResource(key string, count int32) {
 	}
 
 	if count == 0 {
-		go resource.Server.Start()
+		for _, server := range resource.Servers {
+			go server.Start()
+		}
+
 		PatchService(key, count)
 		resource.Mux.Lock()
 		resource.Status = "Asleep"
@@ -60,14 +63,21 @@ func ScaleResource(key string, count int32) {
 		podIP := WaitForPodReady(resource)
 
 		if strings.Contains(key, "svc-") {
-			resource.Server.Proxy.Store("http://" + podIP)
+			for _, server := range resource.Servers {
+				server.Proxy.Store("http://" + podIP)
+			}
+
 		} else if podIP != "" {
-			resource.Server.Proxy.Store("http://" + key)
+			for _, server := range resource.Servers {
+				server.Proxy.Store("http://" + key)
+			}
 		}
 
 		PatchService(key, count)
 		time.Sleep(time.Second)
-		resource.Server.Signal.Unlock()
+		for _, server := range resource.Servers {
+			server.Signal.Unlock()
+		}
 		resource.Mux.Lock()
 		resource.Status = "Awake"
 		resource.Mux.Unlock()
