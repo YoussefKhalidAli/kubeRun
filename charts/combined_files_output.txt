@@ -1,0 +1,835 @@
+================================================================================
+FILE PATH: .helmignore
+================================================================================
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and
+# negation (prefixed with !). Only one pattern per line.
+.git
+*~
+*.swp
+*.bak
+*.tmp
+*.orig
+.DS_Store
+# Common vcs dirs
+.hg
+.bzr
+.svn
+# Common backup dirs
+._*
+# Go local files
+/*.local
+
+
+
+================================================================================
+FILE PATH: Chart.yml
+================================================================================
+apiVersion: v2
+name: kuberun
+description: Scale-to-zero operator for Kubernetes that tracks connection state with conntrack and scales workloads down and back up.
+type: application
+version: 0.1.0
+appVersion: "0.4.52"
+home: https://github.com/YoussefKhalidAli/kubeRun
+sources:
+  - https://github.com/YoussefKhalidAli/kubeRun
+keywords:
+  - kubernetes
+  - scale-to-zero
+  - autoscaling
+  - operator
+  - conntrack
+
+
+
+================================================================================
+FILE PATH: README.md
+================================================================================
+# kubeRun Helm Chart
+
+kubeRun is a scale-to-zero operator for Kubernetes that tracks connection state with conntrack and scales workloads down and back up.
+
+## Prerequisites
+
+- Kubernetes 1.19+
+- Helm 3.0+
+
+## Installing the Chart
+
+To install the chart with the release name `kuberun` in the `default` namespace:
+
+```bash
+helm install kuberun ./charts/kuberun
+```
+
+If installing to a different namespace (e.g. `kuberun`), you must specify both `--namespace` and `--set namespace` to match:
+
+```bash
+helm install kuberun ./charts/kuberun --namespace kuberun --set namespace=kuberun
+```
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `namespace` | string | `"default"` | Namespace to install resources. Must match helm install `--namespace` |
+| `imagePullSecrets` | list | `[]` | Secrets for pulling docker images |
+| `rbac.create` | bool | `true` | Create ClusterRole and ClusterRoleBinding resources |
+| `controller.image.repository` | string | `"youssefkali/kuberun-controller"` | Controller image repository |
+| `controller.image.tag` | string | `"v0.4.52"` | Controller image tag |
+| `controller.image.pullPolicy` | string | `"Always"` | Controller image pull policy |
+| `controller.syncMinutes` | int | `15` | Sync duration minutes. `store.SyncTime = syncMinutes * time.Minute / 2` |
+| `controller.resources.requests.cpu` | string | `"50m"` | Controller requested CPU |
+| `controller.resources.requests.memory` | string | `"64Mi"` | Controller requested memory |
+| `controller.resources.limits.cpu` | string | `"200m"` | Controller CPU limit |
+| `controller.resources.limits.memory` | string | `"128Mi"` | Controller memory limit (scales with cluster/resource count) |
+| `controller.nodeSelector` | object | `{}` | Node selector for controller pod |
+| `controller.tolerations` | list | `[]` | Tolerations for controller pod |
+| `controller.affinity` | object | `{}` | Affinity for controller pod |
+| `controller.podAnnotations` | object | `{}` | Extra annotations for controller pod |
+| `controller.podLabels` | object | `{}` | Extra labels for controller pod |
+| `controller.serviceAccount.create` | bool | `true` | Create ServiceAccount for the controller |
+| `controller.serviceAccount.name` | string | `""` | Override controller ServiceAccount name |
+| `controller.extraEnv` | list | `[]` | Extra environment variables to append to controller pod |
+| `agent.image.repository` | string | `"youssefkali/kuberun-agent"` | Agent image repository |
+| `agent.image.tag` | string | `"v0.3.0"` | Agent image tag |
+| `agent.image.pullPolicy` | string | `"Always"` | Agent image pull policy |
+| `agent.configMapName` | string | `"kuberun-agent-config"` | ConfigMap name for agent config |
+| `agent.config.update` | bool | `false` | Enable GroupCTUpdate netlink group for established connection updates |
+| `agent.resources.requests.cpu` | string | `"10m"` | Agent requested CPU |
+| `agent.resources.requests.memory` | string | `"16Mi"` | Agent requested memory |
+| `agent.resources.limits.cpu` | string | `"50m"` | Agent CPU limit |
+| `agent.resources.limits.memory` | string | `"32Mi"` | Agent memory limit |
+| `agent.extraTolerations` | list | `[]` | Additive tolerations for agent pods |
+| `agent.nodeSelector` | object | `{}` | Node selector for agent pods |
+| `agent.affinity` | object | `{}` | Affinity for agent pods |
+| `agent.podAnnotations` | object | `{}` | Extra annotations for agent pods |
+| `agent.podLabels` | object | `{}` | Extra labels for agent pods |
+
+
+
+================================================================================
+FILE PATH: col.sh
+================================================================================
+#!/usr/bin/env bash
+
+
+
+# Default directories/files to exclude
+
+EXCLUDED_DIRS=("node_modules" ".git" "__pycache__" ".venv" "venv" "build" "dist" ".mypy_cache" ".env", "kuberun-agent
+
+")
+
+TARGET_DIR="."
+
+OUTPUT_FILE=""
+
+
+
+# Helper function to check if an item exists in the exclusion list
+
+is_excluded() {
+
+  local item="$1"
+
+  for exc in "${EXCLUDED_DIRS[@]}"; do
+
+    if [[ "$item" == "$exc" ]]; then
+
+      return 0
+
+    fi
+
+  done
+
+  return 1
+
+}
+
+
+
+# Parse command line arguments
+
+while [[ $# -gt 0 ]]; do
+
+  case "$1" in
+
+    -o|--output)
+
+      OUTPUT_FILE="$2"
+
+      shift 2
+
+      ;;
+
+    -e|--exclude)
+
+      # Split by comma in case of "-e .gitignore,noshow"
+
+      IFS=',' read -ra SPLIT_ITEMS <<< "$2"
+
+      for item in "${SPLIT_ITEMS[@]}"; do
+
+        # Strip leading/trailing whitespace
+
+        trimmed=$(echo "$item" | xargs)
+
+        EXCLUDED_DIRS+=("$trimmed")
+
+      done
+
+      shift 2
+
+      ;;
+
+    -*)
+
+      echo "Unknown option: $1" >&2
+
+      exit 1
+
+      ;;
+
+    *)
+
+      TARGET_DIR="$1"
+
+      shift
+
+      ;;
+
+  esac
+
+done
+
+
+
+# Ensure the target directory exists
+
+if [ ! -d "$TARGET_DIR" ]; then
+
+  echo "Error: Directory '$TARGET_DIR' does not exist." >&2
+
+  exit 1
+
+fi
+
+
+
+# Resolve absolute paths
+
+TARGET_DIR=$(realpath "$TARGET_DIR")
+
+if [ -z "$OUTPUT_FILE" ]; then
+
+  OUTPUT_FILE="$TARGET_DIR/combined_files_output.txt"
+
+else
+
+  OUTPUT_FILE=$(realpath -m "$OUTPUT_FILE")
+
+fi
+
+
+
+# Banner message (Matching the Python rich styling)
+
+echo -e "\nCollecting \033[36m$TARGET_DIR\033[0m → \033[1m$OUTPUT_FILE\033[0m\n"
+
+
+
+# Clear or initialize the output file safely
+
+: > "$OUTPUT_FILE"
+
+files_written=0
+
+
+
+# Recursively find all files, sorted alphabetically (null-terminated to handle spaces safely)
+
+while IFS= read -r -d '' file; do
+
+  abs_file=$(realpath "$file")
+
+
+
+  # 1. Skip if it is the output file itself
+
+  if [[ "$abs_file" == "$OUTPUT_FILE" ]]; then
+
+    continue
+
+  fi
+
+
+
+  # 2. Skip if any part of the path is in the EXCLUDED_DIRS list
+
+  skip_file=false
+
+  IFS='/' read -ra PATH_PARTS <<< "$abs_file"
+
+  for part in "${PATH_PARTS[@]}"; do
+
+    if is_excluded "$part"; then
+
+      skip_file=true
+
+      break
+
+    fi
+
+  done
+
+
+
+  if $skip_file; then
+
+    continue
+
+  fi
+
+
+
+  # Get the path relative to the target directory
+
+  rel_path="${abs_file#$TARGET_DIR/}"
+
+
+
+  # Write the 80-character delimiter headers
+
+  printf '%.0s=' {1..80} >> "$OUTPUT_FILE"
+
+  echo -e "\nFILE PATH: $rel_path" >> "$OUTPUT_FILE"
+
+  printf '%.0s=' {1..80} >> "$OUTPUT_FILE"
+
+  echo "" >> "$OUTPUT_FILE"
+
+
+
+  # 3. Read content safely (Check readability and binary status)
+
+  if [ ! -r "$abs_file" ]; then
+
+    echo "[binary or unreadable file — skipped]" >> "$OUTPUT_FILE"
+
+  elif grep -qI . "$abs_file" 2>/dev/null || [ ! -s "$abs_file" ]; then
+
+    # It's a valid text file or an empty readable file
+
+    cat "$abs_file" >> "$OUTPUT_FILE" 2>/dev/null
+
+  else
+
+    # Failed text-check (likely binary)
+
+    echo "[binary or unreadable file — skipped]" >> "$OUTPUT_FILE"
+
+  fi
+
+
+
+  # Add trailing newlines matching Python's out.write("\n\n")
+
+  echo -e "\n\n" >> "$OUTPUT_FILE"
+
+  ((files_written++))
+
+
+
+done < <(find "$TARGET_DIR" -type f -print0 | sort -z)
+
+
+
+# Success footer message
+
+echo -e "\033[32mpassed\033[0m  $files_written files written to \033[1m$OUTPUT_FILE\033[0m"
+
+
+
+
+================================================================================
+FILE PATH: templates/NOTES.txt
+================================================================================
+kubeRun controller has been successfully installed!
+
+Check the status of the controller pod:
+  kubectl get pods -n {{ .Values.namespace }} -l "KubeRun=Controller"
+
+Check the status of the agent daemonset:
+  kubectl get pods -n {{ .Values.namespace }} -l "name=kuberun-agent"
+
+Follow the controller's logs:
+  kubectl logs -f -n {{ .Values.namespace }} -l "KubeRun=Controller"
+
+IMPORTANT NOTES:
+1. Single Replica Requirement: The controller runs as a single replica. Do NOT scale up or increase the replica count beyond 1. There is no leader election and controller state (in-memory port allocations, HTTP switch servers) is not shared.
+2. Namespace Enforcement: kubeRun is configured to run inside the namespace "{{ .Values.namespace }}". The Helm release namespace must match this values.yaml namespace.
+
+
+
+================================================================================
+FILE PATH: templates/_helpers.tpl
+================================================================================
+{{/*
+Validate that target namespace matches values.namespace.
+*/}}
+{{- define "kuberun.validateNamespace" -}}
+{{- if and .Release.Namespace .Values.namespace (ne .Release.Namespace .Values.namespace) -}}
+{{- fail (printf "Namespace mismatch: target namespace (%s) must match .Values.namespace (%s). Please set both to the same value, e.g. --namespace %s --set namespace=%s" .Release.Namespace .Values.namespace .Values.namespace .Values.namespace) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Controller ServiceAccount Name
+*/}}
+{{- define "kuberun.controllerServiceAccountName" -}}
+{{- if .Values.controller.serviceAccount.create -}}
+    {{- default "kuberun-controller-sa" .Values.controller.serviceAccount.name -}}
+{{- else -}}
+    {{- default "default" .Values.controller.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}
+
+
+
+================================================================================
+FILE PATH: templates/clusterrole.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuberun-controller-role
+rules:
+  # 1. Watch, list, create, and EDIT services across ALL namespaces
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # 2. Get/List/Watch information on Pods
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+  # This grants get/list/watch, plus update/patch and scale subresource rights
+  - apiGroups: ["apps"]
+    resources:
+      - "deployments"
+      - "deployments/scale"
+      - "replicasets"
+      - "statefulsets"
+      - "statefulsets/scale"
+      - "daemonsets"
+    verbs: ["get", "list", "watch", "update", "patch"]
+
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+
+  # 4. Edit a SPECIFIC configmap only
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: [ "{{ .Values.agent.configMapName }}" ]
+    verbs: ["get", "update", "patch"]
+{{- end -}}
+
+
+
+================================================================================
+FILE PATH: templates/clusterrolebinding.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kuberun-controller-binding
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kuberun.controllerServiceAccountName" . }}
+    # MUST match wherever the ServiceAccount is actually deployed.
+    # This derives from the single source of truth (.Values.namespace).
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: kuberun-controller-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end -}}
+
+
+
+================================================================================
+FILE PATH: templates/configmap-agent-config.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.agent.configMapName }}
+  namespace: {{ .Values.namespace }}
+data:
+  config.yml: |
+    # MUST stay in sync with KUBERUN_NAMESPACE and the controller Service name.
+    # This will become a templated value once the Helm chart is built.
+    kube_run_controller: "kuberun-controller.{{ .Values.namespace }}.svc.cluster.local:4444"
+    update: {{ .Values.agent.config.update }}
+    ips:
+    headless_map:
+
+
+
+================================================================================
+FILE PATH: templates/daemonset-agent.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kuberun-agent
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: kuberun-agent
+spec:
+  selector:
+    matchLabels:
+      name: kuberun-agent
+  template:
+    metadata:
+      {{- if .Values.agent.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.agent.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        name: kuberun-agent
+        {{- if .Values.agent.podLabels }}
+        {{- toYaml .Values.agent.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        {{- if .Values.agent.extraTolerations }}
+        {{- toYaml .Values.agent.extraTolerations | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          ports:
+            - name: updates
+              containerPort: 4443
+              hostPort: 4443
+          securityContext:
+            privileged: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_ADMIN
+                - SYS_ADMIN
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/agent-config
+              readOnly: true
+            - name: host-netns
+              mountPath: /var/run/netns
+              readOnly: true
+            - name: hostproc
+              mountPath: /host/proc
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Values.agent.configMapName }}
+        - name: host-netns
+          hostPath:
+            path: /var/run/netns
+        - name: hostproc
+          hostPath:
+            path: /proc
+      {{- if .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.agent.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.affinity | nindent 8 }}
+      {{- end }}
+
+
+
+================================================================================
+FILE PATH: templates/deployment-controller.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberun-controller
+  namespace: {{ .Values.namespace }}
+  labels:
+    KubeRun: Controller
+spec:
+  # DO NOT increase replicas. There is no leader election and controller state (store.Targets,
+  # in-memory port allocations, HTTP switch servers) is not shared across replicas. Running more
+  # than 1 replica will cause conflicting scale decisions and duplicate/broken switch ports.
+  replicas: 1
+  selector:
+    matchLabels:
+      KubeRun: Controller
+  template:
+    metadata:
+      {{- if .Values.controller.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.controller.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        KubeRun: Controller
+        {{- if .Values.controller.podLabels }}
+        {{- toYaml .Values.controller.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "kuberun.controllerServiceAccountName" . }}
+      subdomain: kuberun-controller
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: kuberun-controller
+          image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}"
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          env:
+            - name: SYNC_MINUTES
+              value: {{ .Values.controller.syncMinutes | quote }}
+            - name: KUBERUN_NAMESPACE
+              value: {{ .Values.namespace | quote }}
+            - name: KUBERUN_AGENT_CONFIG_NAME
+              value: {{ .Values.agent.configMapName | quote }}
+            - name: KUBERUN_AGENT_SERVICE_NAME
+              # MUST match the hardcoded Service name "kuberun-agent" per Go code constraints.
+              value: "kuberun-agent"
+            {{- if .Values.controller.extraEnv }}
+            {{- toYaml .Values.controller.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: alert
+              containerPort: 4444
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+      {{- if .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.controller.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml .Values.controller.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.controller.affinity }}
+      affinity:
+        {{- toYaml .Values.controller.affinity | nindent 8 }}
+      {{- end }}
+
+
+
+================================================================================
+FILE PATH: templates/service-agent.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberun-agent
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: kuberun-agent
+spec:
+  clusterIP: None
+  selector:
+    name: kuberun-agent
+  ports:
+    - name: http-api
+      port: 4443
+      targetPort: 4443
+
+
+
+================================================================================
+FILE PATH: templates/service-controller.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberun-controller
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    KubeRun: Controller
+  type: ClusterIP
+  ports:
+    - name: tcp-4444
+      protocol: TCP
+      port: 4444
+      targetPort: 4444
+
+
+
+================================================================================
+FILE PATH: templates/serviceaccount.yml
+================================================================================
+{{- include "kuberun.validateNamespace" . -}}
+{{- if .Values.controller.serviceAccount.create -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "kuberun.controllerServiceAccountName" . }}
+  namespace: {{ .Values.namespace }}
+{{- end -}}
+
+
+
+================================================================================
+FILE PATH: values.schema.json
+================================================================================
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "namespace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "controller": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "Never", "IfNotPresent"]
+            }
+          }
+        },
+        "syncMinutes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "object",
+          "properties": {
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "Never", "IfNotPresent"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["namespace"]
+}
+
+
+
+================================================================================
+FILE PATH: values.yml
+================================================================================
+# Shared Configurations
+namespace: "default"  # Single source of truth. All resources will install into this namespace.
+
+imagePullSecrets: []
+
+rbac:
+  create: true
+
+# Controller Configurations
+controller:
+  image:
+    repository: youssefkali/kuberun-controller
+    tag: "v0.4.52"
+    pullPolicy: Always
+
+  # real math: store.SyncTime = syncMinutes * time.Minute / 2.
+  # syncMinutes=15 means workloads scale to zero after ~7.5 minutes of no traffic.
+  syncMinutes: 15
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      # memory scales with cluster size / number of kuberun/run=true resources tracked.
+      # Tune based on observed usage in your cluster.
+      memory: 128Mi
+
+  nodeSelector: {}
+  tolerations: {}
+  affinity: {}
+
+  podAnnotations: {}
+  podLabels: {}
+
+  serviceAccount:
+    create: true
+    name: ""
+
+  extraEnv: []
+
+# Agent Configurations
+agent:
+  image:
+    repository: youssefkali/kuberun-agent
+    tag: "v0.3.0"
+    pullPolicy: Always
+
+  configMapName: "kuberun-agent-config"
+
+  config:
+    # Enables GroupCTUpdate netlink group. Also fires on established-connection
+    # updates, not just new connections.
+    update: false
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+
+  extraTolerations: []
+  nodeSelector: {}
+  affinity: {}
+
+  podAnnotations: {}
+  podLabels: {}
+
+
+
