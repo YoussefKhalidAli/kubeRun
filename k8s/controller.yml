@@ -18,7 +18,7 @@ spec:
       subdomain: kuberun-controller
       containers:
         - name: kuberun-controller
-          image: youssefkali/kuberun-controller:v0.4.42
+          image: youssefkali/kuberun-controller:v0.4.43
           imagePullPolicy: Always
           ports:
             - name: alert

@@ -51,10 +51,7 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 		}
 	case "delete":
 		if strings.Contains(targetIP, "svc-") {
-			store.Targets[targetIP].Mux.Lock()
 			targetEndpoints := store.Targets[targetIP].Endpoints
-			store.Targets[targetIP].Mux.Unlock()
-
 			innerConfig.Ips = deleteIPs(innerConfig.Ips, targetEndpoints...)
 			removeHeadlessSet(&innerConfig, targetEndpoints)
 		} else {
