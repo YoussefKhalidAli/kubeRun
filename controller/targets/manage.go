@@ -1,6 +1,7 @@
 package targets
 
 import (
+	"strconv"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -21,14 +22,15 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 		Namespace:    metadata.Namespace,
 		Resource:     resource,
 		ServiceName:  metadata.Name,
-		Server:       server.New(),
 		Status:       "Awake",
 		ServicePorts: MapServicePorts(svc.Ports),
 		SelectorMap:  svc.Selector,
 	}
 
 	target := store.Targets[key]
-	target.Server.ScaleUp = func() {
+	target.Servers = make([]*server.Switch, len(*target.ServicePorts))
+
+	scaleUp := func() {
 		target.Mux.Lock()
 		shouldWake := target.Status != "Awake" && target.Status != "Waking"
 		if shouldWake {
@@ -39,12 +41,20 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 			target.Mux.Unlock()
 		}
 	}
+
+	for index, port := range *target.ServicePorts {
+		target.Servers[index] = server.New(strconv.Itoa(port))
+		target.Servers[index].ScaleUp = scaleUp
+	}
+
 }
 
 func DeleteTarget(clientset *kubernetes.Clientset, key string) {
 	target := store.Targets[key]
 	if target.Status == "Asleep" {
-		target.Server.Kill()
+		for _, server := range target.Servers {
+			server.Kill()
+		}
 	}
 
 	agent.UpdateAgentCM(clientset, key, "delete")
