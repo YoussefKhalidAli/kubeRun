@@ -1,0 +1,16 @@
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberun-agent
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: kuberun-agent
+spec:
+  clusterIP: None
+  selector:
+    name: kuberun-agent
+  ports:
+    - name: http-api
+      port: 4443
+      targetPort: 4443

@@ -1,6 +1,6 @@
 |operator|current version|
 | -------- | ------- |
-|controller| 0.4.51|
+|controller| 0.4.52|
 |agent| 0.3.0|
 
 ## Controller
@@ -56,6 +56,10 @@
     - Read sync minutes from env.
       - Before: Hard coded.
       - Now: Read from env.
+- 0.4.52: 
+    - Read namespace, agent config name, and agent service name from env.
+      - Before: KubeRunNamespace, KubeRunAgentConfigName, and KubeRunAgent were hardcoded.
+      - Now: Read from env vars.
 ---
 
 ## Agent

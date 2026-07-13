@@ -1,0 +1,14 @@
+{{- include "kuberun.validateNamespace" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.agent.configMapName }}
+  namespace: {{ .Values.namespace }}
+data:
+  config.yml: |
+    # MUST stay in sync with KUBERUN_NAMESPACE and the controller Service name.
+    # This will become a templated value once the Helm chart is built.
+    kube_run_controller: "kuberun-controller.{{ .Values.namespace }}.svc.cluster.local:4444"
+    update: {{ .Values.agent.config.update }}
+    ips:
+    headless_map:

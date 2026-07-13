@@ -1,0 +1,17 @@
+{{- include "kuberun.validateNamespace" . -}}
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kuberun-controller-binding
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kuberun.controllerServiceAccountName" . }}
+    # MUST match wherever the ServiceAccount is actually deployed.
+    # This derives from the single source of truth (.Values.namespace).
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: kuberun-controller-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end -}}
