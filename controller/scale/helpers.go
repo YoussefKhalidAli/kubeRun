@@ -46,7 +46,7 @@ func PatchService(key string, count int32) {
 
 	if count == 0 {
 		svc.Spec.Selector = map[string]string{
-			"KubeRun": "Controller",
+			"kuberun/operator": "controller",
 		}
 		for index, _ := range svc.Spec.Ports {
 			svc.Spec.Ports[index].TargetPort = intstr.FromInt(resource.Servers[index].SwitchPort)

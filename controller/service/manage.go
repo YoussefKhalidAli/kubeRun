@@ -53,7 +53,7 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 	target.SelectorMap = service.Spec.Selector
 	target.ServicePorts = targets.MapServicePorts(service.Spec.Ports)
 	target.Mux.Unlock()
-	if targetStatus == "Asleep" && service.Spec.Selector["KubeRun"] != "Controller" {
+	if targetStatus == "Asleep" && service.Spec.Selector["kuberun/operator"] != "controller" {
 		scale.PatchService(key, 0)
 	}
 }
