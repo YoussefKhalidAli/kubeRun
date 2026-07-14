@@ -28,7 +28,7 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 		agent.UpdateAgentCM(clientset, key, "add")
 	}
 	targets.CreateTarget(key, svc, metadata, resourceName, resourceKind)
-	labelService(clientset, metadata.Name, metadata.Namespace, key)
+	labelService(clientset, metadata.Name, metadata.Namespace, key, "kuberun/key", key)
 
 	store.PrintTargets()
 }
