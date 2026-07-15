@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"kuberun.com/controller/agent"
 	"kuberun.com/controller/resource"
@@ -13,8 +12,10 @@ import (
 	"kuberun.com/controller/targets"
 )
 
-func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *kubernetes.Clientset) {
+func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
+	svc, metadata := service.Spec, service.ObjectMeta
 	resourceName, resourceKind := resource.FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
+
 	if resourceName == "kuberun-controller" || resourceKind == "DaemonSet" {
 		println("Found unmanagable resource. Skipping")
 		return
@@ -27,7 +28,9 @@ func AddService(svc corev1.ServiceSpec, metadata metav1.ObjectMeta, clientset *k
 		agent.UpdateAgents(key)
 		agent.UpdateAgentCM(clientset, key, "add")
 	}
+
 	targets.CreateTarget(key, svc, metadata, resourceName, resourceKind)
+	CreateshadowService(service, clientset, key)
 	labelService(clientset, metadata.Name, metadata.Namespace, key, "kuberun/key", key)
 
 	store.PrintTargets()
@@ -39,7 +42,7 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 
 	if target == nil {
 		targets.DeleteTarget(clientset, key)
-		AddService(service.Spec, service.ObjectMeta, clientset)
+		AddService(service, clientset)
 		return
 	}
 

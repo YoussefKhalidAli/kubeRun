@@ -17,6 +17,7 @@ type TargetDto struct {
 	ServiceName  string
 	Status       string
 	UpdateMarker string
+	Shadow       string
 	Mux          sync.Mutex       `json:"-"`
 	Servers      []*server.Switch `json:"-"`
 	Endpoints    []string

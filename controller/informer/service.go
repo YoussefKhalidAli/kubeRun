@@ -21,7 +21,7 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 		AddFunc: func(obj any) {
 			svc := obj.(*corev1.Service)
 			if store.Targets[service.GetHeadlessServiceKey(svc.ObjectMeta.Name)] == nil {
-				service.AddService(svc.Spec, svc.ObjectMeta, clientset)
+				service.AddService(svc, clientset)
 			}
 		},
 		DeleteFunc: func(obj any) {
