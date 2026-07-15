@@ -22,16 +22,23 @@ func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
 	}
 
 	key := svc.ClusterIP
+	var serviceType string
+
 	if key == "None" {
 		key = GetHeadlessServiceKey(metadata.Name)
+		serviceType = "headless"
 	} else {
+		serviceType = "clusterIP"
 		agent.UpdateAgents(key)
 		agent.UpdateAgentCM(clientset, key, "add")
 	}
 
 	targets.CreateTarget(key, svc, metadata, resourceName, resourceKind)
 	CreateshadowService(service, clientset, key)
-	labelService(clientset, metadata.Name, metadata.Namespace, key, "kuberun/key", key)
+
+	labelKeys := [2]string{"key", "type"}
+	labelValues := [2]string{key, serviceType}
+	labelService(clientset, metadata.Name, metadata.Namespace, key, labelKeys[:], labelValues[:])
 
 	store.PrintTargets()
 }

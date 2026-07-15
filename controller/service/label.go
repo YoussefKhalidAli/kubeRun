@@ -11,7 +11,7 @@ import (
 	"kuberun.com/controller/utils"
 )
 
-func labelService(clientset *kubernetes.Clientset, name string, namespace string, key string, labelKey string, labelValue string) {
+func labelService(clientset *kubernetes.Clientset, name string, namespace string, key string, labelKey []string, labelValue []string) {
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		ctx := context.Background()
@@ -24,7 +24,9 @@ func labelService(clientset *kubernetes.Clientset, name string, namespace string
 			latest.Labels = make(map[string]string)
 		}
 
-		latest.Labels[labelKey] = labelValue
+		for index, _ := range labelKey {
+			latest.Labels[fmt.Sprintf("kuberun/%v", labelKey[index])] = labelValue[index]
+		}
 
 		updated, updateErr := clientset.CoreV1().Services(namespace).Update(
 			ctx,
