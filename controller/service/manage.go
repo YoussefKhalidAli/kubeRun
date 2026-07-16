@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"kuberun.com/controller/agent"
@@ -10,6 +8,7 @@ import (
 	"kuberun.com/controller/scale"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/targets"
+	"kuberun.com/controller/utils"
 )
 
 func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
@@ -25,7 +24,7 @@ func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
 	var serviceType string
 
 	if key == "None" {
-		key = GetHeadlessServiceKey(metadata.Name)
+		key = utils.GetHeadlessServiceKey(metadata.Name)
 		serviceType = "Headless"
 	} else {
 		serviceType = string(corev1.ServiceTypeClusterIP)
@@ -66,8 +65,4 @@ func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Servi
 	if targetStatus == "Asleep" && service.Spec.Selector["kuberun/operator"] != "controller" {
 		scale.PatchService(key, 0)
 	}
-}
-
-func GetHeadlessServiceKey(name string) string {
-	return fmt.Sprintf("svc-%v", name)
 }
