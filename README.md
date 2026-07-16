@@ -212,3 +212,6 @@ versions.md   Per-component changelog
 
 kubeRun is under active development — see `versions.md` for the detailed changelog of what's
 landed in the agent and controller so far.
+
+## License
+kubeRun is licensed under the [Apache License 2.0](LICENSE).
