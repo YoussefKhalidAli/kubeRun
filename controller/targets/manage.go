@@ -1,7 +1,9 @@
 package targets
 
 import (
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +36,12 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 		target.Mux.Lock()
 		shouldWake := target.Status != "Awake" && target.Status != "Waking"
 		if shouldWake {
+			
+			for _, port := range target.Servers {
+				switchPort := strconv.Itoa(port.SwitchPort)
+				http.Post("http://"+store.KubeRunPodIp+":"+switchPort, "text/plain", strings.NewReader("Go to Sleep"))
+			}
+			
 			target.Status = "Waking"
 			target.Mux.Unlock()
 			go scale.ScaleResource(key, 1)
