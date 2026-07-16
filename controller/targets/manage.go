@@ -14,6 +14,7 @@ import (
 	"kuberun.com/controller/scale"
 	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
+	"kuberun.com/controller/utils"
 )
 
 func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceName string, resource string) {
@@ -58,10 +59,15 @@ func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta
 }
 
 func DeleteTarget(clientset *kubernetes.Clientset, key string) {
-	target := store.Targets[key]
+	target, ok := store.Targets[key]
+	if !ok || target == nil {
+		return
+	}
 	if target.Status == "Asleep" {
 		for _, server := range target.Servers {
-			server.Kill()
+			if server != nil {
+				server.Kill()
+			}
 		}
 	}
 
@@ -79,6 +85,10 @@ func MapServicePorts(portsMap []corev1.ServicePort) *[]int {
 }
 
 func killSwitch(port string) {
-	resp, _ := http.Post("http://"+store.KubeRunPodIp+":"+port, "text/plain", strings.NewReader("Go to Sleep"))
+	resp, err := http.Post("http://"+store.KubeRunPodIp+":"+port, "text/plain", strings.NewReader("Go to Sleep"))
+	if err != nil {
+		utils.HandelError(err, "KRC1451L", "Failed to kill switch on port "+port)
+		return
+	}
 	resp.Body.Close()
 }

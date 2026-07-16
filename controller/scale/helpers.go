@@ -21,13 +21,19 @@ func PatchService(key string, count int32) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	resource := store.Targets[key]
+	resource, ok := store.Targets[key]
+	if !ok || resource == nil {
+		utils.HandelError(fmt.Errorf("target %s not found in store", key), "KRC1448M", "target not found in store")
+		return
+	}
+
 	svc, err := replaceService(key, clientset, ctx)
+	if err != nil {
+		utils.HandelError(err, "KRC1441M", fmt.Sprintf("Couldn't update service %v", resource.ServiceName))
+		return
+	}
 
 	resource.Mux.Lock()
-	if err != nil {
-		utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't update service %v", resource.ServiceName))
-	}
 	resource.UpdateMarker = svc.ResourceVersion
 	resource.Mux.Unlock()
 }
@@ -35,7 +41,11 @@ func PatchService(key string, count int32) {
 func replaceService(key string, clientset *kubernetes.Clientset, ctx context.Context) (*corev1.Service, error) {
 	var emptySvc *corev1.Service
 
-	resource := store.Targets[key]
+	resource, ok := store.Targets[key]
+	if !ok || resource == nil {
+		return emptySvc, fmt.Errorf("target %s not found in store", key)
+	}
+
 	resource.Mux.Lock()
 	name := resource.ServiceName
 	namespace := resource.Namespace
@@ -43,7 +53,7 @@ func replaceService(key string, clientset *kubernetes.Clientset, ctx context.Con
 
 	svc, err := clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		utils.HandelError(err, "KRC1442", fmt.Sprintf("Couldn't find service %v", name))
+		utils.HandelError(err, "KRC1449M", fmt.Sprintf("Couldn't find service %v", name))
 		return emptySvc, err
 	}
 
@@ -82,13 +92,13 @@ func replaceService(key string, clientset *kubernetes.Clientset, ctx context.Con
 
 	err = clientset.CoreV1().Services(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
-		utils.HandelError(err, "KRC1442", fmt.Sprintf("Couldn't delete old service %v", name))
+		utils.HandelError(err, "KRC1447M", fmt.Sprintf("Couldn't delete old service %v", name))
 		return emptySvc, err
 	}
 
 	created, err := clientset.CoreV1().Services(namespace).Create(ctx, svc, metav1.CreateOptions{})
 	if err != nil {
-		utils.HandelError(err, "KRC1442", fmt.Sprintf("Couldn't recreate service %v", name))
+		utils.HandelError(err, "KRC1444M", fmt.Sprintf("Couldn't recreate service %v", name))
 		return emptySvc, err
 	}
 
@@ -121,7 +131,7 @@ func WaitForPodReady(resource *store.TargetDto) string {
 				LabelSelector: labelSelector,
 			})
 			if err != nil {
-				utils.HandelError(err, "KRC9061", fmt.Sprintf("Couldn't get pods for %v", name))
+				utils.HandelError(err, "KRC9061M", fmt.Sprintf("Couldn't get pods for %v", name))
 				return ""
 			}
 			for _, pod := range pods.Items {

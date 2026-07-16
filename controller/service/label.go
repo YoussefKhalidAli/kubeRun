@@ -8,10 +8,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	"kuberun.com/controller/store"
-	"kuberun.com/controller/utils"
 )
 
-func labelService(clientset *kubernetes.Clientset, name string, namespace string, key string, labelKey []string, labelValue []string) {
+func labelService(clientset *kubernetes.Clientset, name string, namespace string, key string, labelKey []string, labelValue []string) error {
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		ctx := context.Background()
@@ -33,15 +32,18 @@ func labelService(clientset *kubernetes.Clientset, name string, namespace string
 			latest,
 			metav1.UpdateOptions{},
 		)
+		if updateErr != nil {
+			return updateErr
+		}
 
-		target := store.Targets[key]
-		target.Mux.Lock()
-		target.UpdateMarker = updated.ResourceVersion
-		target.Mux.Unlock()
+		target, ok := store.Targets[key]
+		if ok && target != nil {
+			target.Mux.Lock()
+			target.UpdateMarker = updated.ResourceVersion
+			target.Mux.Unlock()
+		}
 
-		return updateErr
+		return nil
 	})
-	if err != nil {
-		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update statefulset %v after retrying", name))
-	}
+	return err
 }

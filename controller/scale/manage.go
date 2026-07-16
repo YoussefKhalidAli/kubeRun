@@ -16,7 +16,11 @@ import (
 func ScaleResource(key string, count int32) {
 	clientset := client.GetClientset()
 
-	resource := store.Targets[key]
+	resource, ok := store.Targets[key]
+	if !ok || resource == nil {
+		utils.HandelError(fmt.Errorf("target %s not found in store", key), "KRC1448M", "target not found in store")
+		return
+	}
 	fmt.Printf("Scaling %v to %v", resource, count)
 
 	resource.Mux.Lock()
@@ -47,7 +51,8 @@ func ScaleResource(key string, count int32) {
 	}
 
 	if err != nil {
-		utils.HandelError(err, "KRC9060", fmt.Sprintf("Couldn't scale deployment %v", name))
+		utils.HandelError(err, "KRC9060M", fmt.Sprintf("Couldn't scale deployment %v", name))
+		return
 	}
 
 	if count == 0 {

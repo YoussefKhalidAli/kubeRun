@@ -22,7 +22,7 @@ func podInformer(factory informers.SharedInformerFactory) {
 
 func setKubeRunPodIp(obj any) {
 	pod, ok := obj.(*corev1.Pod)
-	if !ok {
+	if !ok || pod == nil {
 		return
 	}
 	store.KubeRunPodIp = pod.Status.PodIP

@@ -68,7 +68,10 @@ func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string
 }
 
 func DeleteResource(clusterIP string) {
-	target := store.Targets[clusterIP]
+	target, ok := store.Targets[clusterIP]
+	if !ok || target == nil {
+		return
+	}
 	target.Mux.Lock()
 	target.Resource = ""
 	target.ResourceName = ""

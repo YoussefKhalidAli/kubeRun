@@ -23,7 +23,7 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 			if !ok || eSlice == nil {
 				return
 			}
-			if len(eSlice.Endpoints) > 0 {
+			if len(eSlice.Endpoints) > 0 && len(eSlice.ObjectMeta.OwnerReferences) > 0 {
 				selector := eSlice.Endpoints[0].Hostname
 				owner := eSlice.ObjectMeta.OwnerReferences[0].Name
 

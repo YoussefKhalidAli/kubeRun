@@ -26,9 +26,12 @@ func deploymentInformer(factory informers.SharedInformerFactory) {
 			defer cancel()
 
 			dep, ok := obj.(*appsv1.Deployment)
-			depClusterIP := dep.Labels["kuberun/clusterIP"]
-			if !ok {
+			if !ok || dep == nil {
 				return
+			}
+			depClusterIP := ""
+			if dep.Labels != nil {
+				depClusterIP = dep.Labels["kuberun/clusterIP"]
 			}
 			println("Deleting deployment with clusterIP: ", depClusterIP)
 			current, err := clientset.AppsV1().Deployments(dep.Namespace).Get(
@@ -39,7 +42,7 @@ func deploymentInformer(factory informers.SharedInformerFactory) {
 			case errors.IsNotFound(err) || current.UID != dep.UID:
 				resource.DeleteResource(depClusterIP)
 			case err != nil:
-				utils.HandelError(err, "KRC9022", "Couldn't verify deployment deletion")
+				utils.HandelError(err, "KRC9022M", "Couldn't verify deployment deletion")
 			default:
 				deployment.LabelDeplyment(ctx, dep.Namespace, dep, depClusterIP)
 			}

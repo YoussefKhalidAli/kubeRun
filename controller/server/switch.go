@@ -92,7 +92,7 @@ func (sw *Switch) Start() {
 	fmt.Printf("switch number %v listener booted successfully\n", sw.SwitchPort)
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		utils.HandelError(err, "KRC9019", fmt.Sprintf("Couldn't boot up switch number %v server.", sw.SwitchPort))
+		utils.HandelError(err, "KRC9019M", fmt.Sprintf("Couldn't boot up switch number %v server.", sw.SwitchPort))
 	}
 }
 

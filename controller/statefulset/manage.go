@@ -34,6 +34,6 @@ func LabelStatefulSet(ctx context.Context, resourceNamespace string, statefulset
 		return updateErr
 	})
 	if err != nil {
-		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update statefulset %v after retrying", statefulset.Name))
+		utils.HandelError(err, "KRC1443M", fmt.Sprintf("Couldn't update statefulset %v after retrying", statefulset.Name))
 	}
 }
