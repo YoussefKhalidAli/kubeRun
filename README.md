@@ -1,122 +1,214 @@
-Build a production-ready Helm chart for kubeRun at kuberun/charts. Base it on the existing raw
-manifests in k8s/ (agent-config.yml, agent.yml, controller-permissions.yml, controller.yml) and
-the env vars added in controller v0.4.52 (KUBERUN_NAMESPACE, KUBERUN_AGENT_CONFIG_NAME,
-KUBERUN_AGENT_SERVICE_NAME, SYNC_MINUTES).
+# kubeRun
 
-IMPORTANT CONSTRAINTS (do not violate these — the app breaks or becomes unsafe otherwise):
+**kubeRun** is a scale-to-zero operator for Kubernetes. It watches your Services, puts idle
+workloads to sleep (0 replicas), and wakes them back up the instant real traffic arrives — all
+without requiring any changes to your application code, and without relying on an HTTP-level
+sidecar or ingress proxy.
 
-1. Single release per cluster. kubeRun's controller runs as a single replica with in-memory state
-   and no leader election, and its ClusterRole/ClusterRoleBinding are cluster-scoped by design (it
-   watches Services/Deployments/StatefulSets across ALL namespaces, not just its own). Do not add
-   a replicaCount value — hardcode replicas: 1 in the Deployment template with the existing
-   "DO NOT increase replicas" comment carried over from controller.yml.
+Instead, kubeRun detects traffic at the kernel level using **conntrack** (Linux connection
+tracking), which means it works for any TCP traffic your Service receives — HTTP, gRPC, raw TCP,
+database connections, anything — not just requests that pass through a specific proxy layer.
 
-2. Fixed resource names, decoupled from Helm release name. The controller Service must always be
-   named exactly "kuberun-controller" and the agent Service must always be named exactly
-   "kuberun-agent", regardless of .Release.Name or nameOverride/fullnameOverride. This is required
-   because:
-     a) controller/sync.go, controller/service/manage.go, and controller/informer/slice.go contain
-        hardcoded string checks against the literal "kuberun-controller" to avoid the controller
-        trying to track/scale itself. If the Service or Deployment name were templated to something
-        else, the controller could attempt to scale itself, which is a serious failure mode. Do not
-        templatize these Go-level checks or the resource names they depend on.
-     b) The agent's Go code builds its controller endpoint from
-        <service-name>.<namespace>.svc.cluster.local using KUBERUN_AGENT_SERVICE_NAME.
-   nameOverride/fullnameOverride, if you add them at all, may only affect ancillary resources
-   (ServiceAccount name, ConfigMap name if desired) — never the controller/agent Service or
-   workload names.
+---
 
-3. Namespace is now dynamic via KUBERUN_NAMESPACE (added in controller v0.4.52), but the chart
-   should still default all resources to install into "default" and should keep the
-   ClusterRoleBinding's ServiceAccount subject namespace, the ConfigMap's data, and the env vars
-   all deriving from ONE values.yml field (e.g. .Values.namespace), so they can never drift
-   independently. Do not silently allow the chart to be installed into a different namespace than
-   .Values.namespace resolves to — if the user sets a namespace via `--namespace` on the Helm CLI
-   that differs from .Values.namespace, either use .Values.namespace consistently everywhere and
-   document this clearly in NOTES.txt/helm.md, or add a `{{ fail }}` check in _helpers.tpl if they
-   diverge. Pick whichever approach is more idiomatic Helm and explain your choice.
+## Why conntrack instead of a proxy?
 
-4. Wire the new v0.4.52 env vars into the controller Deployment template:
-   - KUBERUN_NAMESPACE           <- .Values.namespace
-   - KUBERUN_AGENT_CONFIG_NAME   <- .Values.agent.configMapName (default "kuberun-agent-config")
-   - KUBERUN_AGENT_SERVICE_NAME  <- .Values.agent.serviceName (default "kuberun-agent", but per
-                                     constraint 2 this should really just be a fixed literal
-                                     "kuberun-agent" — expose it as a value only if you also update
-                                     the ConfigMap/Service templates to consistently use the same
-                                     value, otherwise hardcode it and explain why in a comment)
-   Also update the ConfigMap's `kube_run_controller:` field to be templated from the same
-   controller-service-name + namespace values used in constraint 2/3, instead of the hardcoded
-   string that's currently in k8s/agent-config.yml.
+Most scale-to-zero tools (e.g. Knative, KEDA's HTTP add-on) work by routing all traffic through an
+HTTP proxy that can observe request volume. That's effective, but it means:
+- Every request pays a proxy hop, even when the workload is already awake.
+- Non-HTTP protocols usually aren't supported out of the box.
 
-5. Preserve the DaemonSet's required agent capabilities: hostNetwork: true, privileged: true,
-   NET_ADMIN + SYS_ADMIN capabilities, and the control-plane/master tolerations, on by default.
-   Expose agent.extraTolerations, agent.nodeSelector, agent.affinity as additive/overridable
-   values without removing the required defaults.
+kubeRun instead asks the Linux kernel directly: "has this destination IP seen a new connection?"
+via netlink conntrack events. This is nearly free at runtime when a workload is awake (no proxy in
+the path), and only kicks in a temporary proxy ("switch") while a workload is asleep and needs to
+be woken.
 
-Chart structure:
-- Chart.yml (name: kuberun, description from README.md, appVersion "0.4.52", home/sources
-  pointing at the GitHub repo, keywords: kubernetes, scale-to-zero, autoscaling, operator,
-  conntrack)
-- values.yml
-- values.schema.json (basic validation: pullPolicy enum, syncMinutes positive integer, namespace
-  as a non-empty string)
-- templates/_helpers.tpl
-- templates/serviceaccount.yml
-- templates/clusterrole.yml
-- templates/clusterrolebinding.yml
-- templates/configmap-agent-config.yml
-- templates/daemonset-agent.yml
-- templates/service-agent.yml
-- templates/deployment-controller.yml
-- templates/service-controller.yml
-- templates/NOTES.txt
-- README.md (auto-generated values table, standard for Artifact Hub)
-- .helmignore
+---
 
-values.yml should expose:
+## Architecture at a glance
 
-Shared:
-- namespace (default "default") — single source of truth per constraint 3
-- imagePullSecrets (default [])
-- rbac.create (default true)
+kubeRun has two components:
 
-Controller:
-- controller.image.repository (default youssefkali/kuberun-controller)
-- controller.image.tag (default "v0.4.52")
-- controller.image.pullPolicy (default Always)
-- controller.syncMinutes (default 15) — in values.yml comments AND in helm.md, explain the real
-  math: store.SyncTime = syncMinutes * time.Minute / 2, so syncMinutes=15 means workloads scale to
-  zero after ~7.5 minutes of no traffic, not 15
-- controller.resources.requests (default cpu: 50m, memory: 64Mi)
-- controller.resources.limits (default cpu: 200m, memory: 128Mi) — add a values.yml comment that
-  memory scales with cluster size / number of kuberun/run=true resources tracked, tune from
-  observed usage
-- controller.nodeSelector / tolerations / affinity (default {})
-- controller.podAnnotations / podLabels (default {})
-- controller.serviceAccount.create (default true) and .name override
-- controller.extraEnv (list)
+| Component | Runs as | Responsibility |
+|---|---|---|
+| **Agent** | DaemonSet (one per node, `hostNetwork: true`) | Watches kernel conntrack events, matches destination IPs against a watch-list, and alerts the controller on a hit. |
+| **Controller** | Deployment (single replica) | Watches Kubernetes Services/Deployments/StatefulSets, decides what to track, scales workloads to zero when idle, and wakes them on demand. |
 
-Agent:
-- agent.image.repository (default youssefkali/kuberun-agent)
-- agent.image.tag (default "v0.3.0")
-- agent.image.pullPolicy (default Always)
-- agent.config.update (default false) — document in values.yml comment: enables GroupCTUpdate
-  netlink group, also fires on established-connection updates not just new connections
-- agent.resources.requests (default cpu: 10m, memory: 16Mi)
-- agent.resources.limits (default cpu: 50m, memory: 32Mi)
-- agent.extraTolerations (default [], appended to the required baseline tolerations, never
-  replacing them)
-- agent.nodeSelector / affinity (default {})
-- agent.podAnnotations / podLabels (default {})
+```mermaid
+flowchart LR
+    subgraph Node["Every cluster node"]
+        A[kubeRun Agent<br/>conntrack netlink listener]
+    end
+    subgraph Ctrl["kubeRun Controller (1 replica)"]
+        C1[Informers:<br/>Services / Deployments /<br/>StatefulSets / EndpointSlices]
+        C2[In-memory Target Store]
+        C3[Sync Loop]
+        C4[Switch / Proxy servers]
+    end
+    K8sAPI[(Kubernetes API)]
 
-After building the chart:
-1. Run `helm lint ./charts/kuberun` and `helm template ./charts/kuberun` — fix all errors/warnings.
-2. Run `helm template ./charts/kuberun --set namespace=foo` and confirm the ConfigMap's
-   kube_run_controller field, the ClusterRoleBinding subject namespace, and all env vars correctly
-   reflect "foo" consistently everywhere — paste this rendered output for me to review.
-3. Diff the default-values rendered templates against the original k8s/*.yml manifests and call
-   out any unintentional differences (labels, selectors, annotations).
-4. Confirm resource requests/limits are attached to both the controller Deployment and agent
-   DaemonSet containers.
+    A -- "POST /alert (ip)" --> C4
+    C1 -- watch --> K8sAPI
+    C1 --> C2
+    C3 --> C2
+    C3 -- "scale to 0 / wake" --> K8sAPI
+    C4 -- "proxy once woken" --> K8sAPI
+    C2 -- "push IP watch-list" --> A
+```
 
-Do not write helm.md yet — I'll ask for that separately once I've reviewed the chart output.
+---
+
+## The Agent
+
+The agent is a privileged DaemonSet (`NET_ADMIN`, `SYS_ADMIN`) that runs on every node with
+`hostNetwork: true`. Its job is narrow and cheap:
+
+1. **Listen to the kernel.** It opens a netlink `conntrack` connection and subscribes to
+   `GroupCTNew` (new connections), optionally also `GroupCTUpdate` if
+   `agent.config.update: true` is set (needed if you want kubeRun to also react to renewed
+   activity on already-established long-lived connections, at the cost of more events to filter).
+2. **Filter.** For every connection event, it checks the destination IP against a watch-list held
+   in memory (`store.Config.Ips`). This list is the set of ClusterIPs (or headless-service keys)
+   the controller currently cares about.
+3. **Alert.** On a match, it `POST`s the IP (or its headless-service equivalent, from
+   `HeadlessMap`) to the controller's `/alert` endpoint.
+4. **Stay in sync with the controller**, two ways at once:
+   - **Slow path:** the watch-list lives in a mounted ConfigMap
+     (`/etc/agent-config/config.yml`), watched via `fsnotify`. Any update to the ConfigMap is
+     picked up automatically.
+   - **Fast path:** the controller also pushes individual IP updates directly over HTTP to
+     `:4443/update` on every agent pod as soon as a new Service is registered, so there's no
+     multi-minute delay waiting for the ConfigMap to propagate.
+
+## The Controller
+
+The controller is intentionally a **single replica** with no leader election — its state
+(in-memory port allocations, target map, live proxy servers) is not shared or persisted, so
+running more than one replica would cause conflicting scale decisions.
+
+### What it tracks
+
+The controller uses Kubernetes informers to watch Services labeled `kuberun/run: "true"` across
+**all namespaces**, plus their backing Deployments, StatefulSets, Pods, and EndpointSlices. For
+each matched Service it resolves the real workload behind it (walking Pod → ReplicaSet →
+Deployment, or Pod → StatefulSet directly) and stores a `TargetDto` keyed by:
+- the Service's `ClusterIP`, for normal ClusterIP services, or
+- `svc-<name>`, for headless services (StatefulSets), since those have no ClusterIP to key on.
+
+Two special cases are excluded automatically: the controller's own Service/Deployment (so it
+never tries to scale itself) and anything backed by a DaemonSet (agents included).
+
+### Shadow services and the wake path
+
+When a target goes idle past its threshold (see [Timing](#timing) below), the controller doesn't
+touch the workload's Pods directly — it goes through a **shadow service** pattern:
+
+1. A "shadow" copy of the user's Service is created in kubeRun's own namespace, with its ports
+   pointed at per-port **Switch** HTTP servers running inside the controller.
+2. The real Deployment/StatefulSet is scaled to 0 replicas.
+3. The user's original Service is patched to `ExternalName`, pointing at the shadow service's DNS
+   name. Traffic to the original Service now transparently lands on a Switch.
+4. The first request that hits a Switch triggers `ScaleUp()`: the workload is scaled back to 1
+   replica, the controller waits for a Pod to report `Ready`, then re-patches the proxy
+   destination and the original Service back to `ClusterIP`/normal routing. The in-flight request
+   is held (via a lock) until the Pod is ready, then proxied through — so the caller sees a delayed
+   response rather than a dropped connection.
+
+Switch ports are allocated from a small in-memory bitmap (ports 200–60000, with `:4444` reserved
+for the controller's own alert listener) and released back to the pool when a target is deleted.
+
+### Headless services
+
+StatefulSets typically sit behind headless Services (`clusterIP: None`), which have no single IP
+to key on. kubeRun instead watches the Service's `EndpointSlice` and tracks each Pod's individual
+IP, mapping every one of them to the same `svc-<name>` key via the agent's `headless_map`. This is
+what lets the agent translate "traffic hit pod IP X" back into "target `svc-<name>` is active."
+
+### Timing
+
+`controller.syncMinutes` (default 15, configurable) doesn't mean what it sounds like — the actual
+idle threshold is:
+
+```
+store.SyncTime = syncMinutes * time.Minute / 2
+```
+
+So the default `syncMinutes: 15` scales a workload to zero after **~7.5 minutes** of no observed
+traffic, checked once per `SyncTime` tick by the sync loop.
+
+---
+
+## Labels
+
+kubeRun coordinates state entirely through labels (see `labels.md` for the full reference):
+
+| Label | Values | Purpose |
+|---|---|---|
+| `kuberun/operator` | `controller`, `agent`, `shadow` | Marks a kubeRun-owned resource |
+| `kuberun/run` | `"true"` | Opts a Service (and its backing workload) into kubeRun management |
+| `kuberun/key` | ClusterIP or `svc-<name>` | Where this Service's tracked state lives |
+| `kuberun/clusterIP` | an IP | Recorded on the Deployment/StatefulSet so it can be re-associated after resource lookups |
+
+---
+
+## Observability
+
+kubeRun uses structured logging (`log/slog`, JSON by default) across both binaries, configurable
+via `LOG_LEVEL` (`debug`/`info`/`warn`/`error`) and `LOG_FORMAT` (`json`/`text`) environment
+variables.
+
+All handled errors carry a stable `KRxxxxx`-style code documented in `errors.md`, which maps to
+a severity tier:
+
+| Severity | Meaning | Log level | Behavior |
+|---|---|---|---|
+| `H` | Unrecoverable | `slog.Error` | Logged, then panics |
+| `M` | Recoverable | `slog.Warn` | Logged, execution continues |
+| `L` | Benign/transient | `slog.Debug` | Logged at debug only, no alarm |
+
+If you hit an error code in the logs, `errors.md` will tell you exactly what component, category,
+and severity it maps to.
+
+---
+
+## Installation
+
+kubeRun ships as a Helm chart at `charts/kuberun`:
+
+```bash
+helm install kuberun ./charts/kuberun
+```
+
+To install into a non-default namespace, `--namespace` and `--set namespace=...` must match —
+this is enforced by the chart, because the namespace is a single source of truth threaded through
+the ClusterRoleBinding subject, the agent ConfigMap, and every relevant env var. See
+`charts/kuberun/README.md` for the full values reference.
+
+**Important operational constraints:**
+- Run exactly **one** controller replica — there is no leader election.
+- The controller's RBAC is intentionally **cluster-scoped** (it needs to watch and scale
+  workloads in any namespace that opts in via labels), even though the controller itself lives in
+  one namespace.
+- The agent DaemonSet requires `hostNetwork: true` and the `NET_ADMIN`/`SYS_ADMIN` capabilities to
+  read conntrack events — these are not optional.
+
+---
+
+## Project layout
+
+```
+agent/        Go module — the DaemonSet binary (conntrack listener + filter + alert client)
+controller/   Go module — the Deployment binary (informers, scaling, shadow services, switches)
+charts/kuberun/  Helm chart for installing both components
+k8s/          Raw manifests the Helm chart was derived from
+errors.md     Full KRxxxxx error code reference
+labels.md     Full kuberun/* label reference
+versions.md   Per-component changelog
+```
+
+---
+
+## Status
+
+kubeRun is under active development — see `versions.md` for the detailed changelog of what's
+landed in the agent and controller so far.

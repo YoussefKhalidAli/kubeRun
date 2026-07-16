@@ -10,7 +10,7 @@ rbac:
 controller:
   image:
     repository: youssefkali/kuberun-controller
-    tag: "v0.4.52"
+    tag: "v0.5.1"
     pullPolicy: Always
 
   # real math: store.SyncTime = syncMinutes * time.Minute / 2.

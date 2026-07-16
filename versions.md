@@ -1,7 +1,7 @@
 |operator|current version|
 | -------- | ------- |
-|controller| 0.5.0|
-|agent| 0.3.0|
+|controller| 0.5.2|
+|agent| 0.3.1|
 
 ## Controller
 - 0.3.2: 
@@ -73,6 +73,10 @@
       - Before: No knowledge of pod ip.
       - Now: Get `kuberun` controller pod ip. This is done to "kill" forgotten switches by broadcasting to all switch ports on scale to 1.
       - Notes: This is done by adding `kuberun/run: "true"` to the controller pod.
+- 0.5.2: 
+    - Better logging and error handling.
+      - Before: Logging was prints and error handling paniced on everything.
+      - Now: Detailed and structured logging. Severity based error handling.
 ---
 
 ## Agent
@@ -83,3 +87,7 @@
 - 0.3.0: Add headless services map.
     - Before: Agent Sends hit IP to controller.
     - Now: Agent sends the key of the hit resource, be it a `ClusterIP` or the key of a headless service.
+- 0.3.1: 
+    - Better logging and error handling.
+      - Before: Logging was prints and error handling paniced on everything.
+      - Now: Detailed and structured logging. Severity based error handling.
