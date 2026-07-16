@@ -26,9 +26,9 @@ func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
 
 	if key == "None" {
 		key = GetHeadlessServiceKey(metadata.Name)
-		serviceType = "headless"
+		serviceType = "Headless"
 	} else {
-		serviceType = "clusterIP"
+		serviceType = string(corev1.ServiceTypeClusterIP)
 		agent.UpdateAgents(key)
 		agent.UpdateAgentCM(clientset, key, "add")
 	}
