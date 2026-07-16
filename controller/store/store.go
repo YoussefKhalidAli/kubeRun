@@ -20,6 +20,7 @@ var SyncTime = syncMinutes * time.Minute / 2
 var KubeRunNamespace = getEnvString("KUBERUN_NAMESPACE", "default")
 var KubeRunAgentConfigName = getEnvString("KUBERUN_AGENT_CONFIG_NAME", "kuberun-agent-config")
 var KubeRunAgent = getKubeRunAgent()
+var KubeRunPodIp string
 
 // Labels
 var RunLabel = "kuberun/run=true"

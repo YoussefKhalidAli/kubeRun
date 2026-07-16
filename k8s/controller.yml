@@ -16,12 +16,13 @@ spec:
     metadata:
       labels:
         kuberun/operator: controller
+        kuberun/run: "true"
     spec:
       serviceAccountName: kuberun-controller-sa
       subdomain: kuberun-controller
       containers:
         - name: kuberun-controller
-          image: youssefkali/kuberun-controller:v0.5.0
+          image: youssefkali/kuberun-controller:v0.5.1
           imagePullPolicy: Always
           resources:
                requests:

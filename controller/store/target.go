@@ -9,13 +9,22 @@ import (
 	"kuberun.com/controller/server"
 )
 
+type TargetStatus string
+
+const (
+	Awake    TargetStatus = "Awake"
+	Waking   TargetStatus = "Waking"
+	Asleep   TargetStatus = "Asleep"
+	Sleeping TargetStatus = "Sleeping"
+)
+
 type TargetDto struct {
 	LastAccessed time.Time
 	ResourceName string
 	Namespace    string
 	Resource     string
 	ServiceName  string
-	Status       string
+	Status       TargetStatus
 	UpdateMarker string
 	Mux          sync.Mutex       `json:"-"`
 	Servers      []*server.Switch `json:"-"`

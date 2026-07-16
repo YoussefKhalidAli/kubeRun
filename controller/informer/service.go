@@ -36,7 +36,7 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			target := store.Targets[key]
 			target.Mux.Lock()
 			store.PrintTargets()
-			if !strings.Contains(target.Status, "ing") {
+			if !strings.Contains(string(target.Status), "ing") {
 				targets.DeleteTarget(clientset, key)
 				service.DeleteShadowService(clientset, utils.GetShadowName(target.ServiceName))
 			}

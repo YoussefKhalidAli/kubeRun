@@ -20,6 +20,7 @@ func Connect() {
 	statefulsetInformer(factory)
 	endpointSlicesInformer(factory)
 
+	podInformer(factory)
 	stopChan := make(chan struct{})
 	defer close(stopChan)
 	factory.Start(stopChan)
