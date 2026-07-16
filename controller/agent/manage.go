@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"slices"
@@ -19,25 +20,33 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 
 	cm, err := clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Get(ctx, store.KubeRunAgentConfigName, metav1.GetOptions{})
 	if err != nil {
-		utils.HandelError(err, "KRC0404", "failed to get configmap")
+		utils.HandelError(err, "KRC0404H", "failed to get configmap")
+		return
 	}
 
 	if cm.Data == nil || cm.Data["config.yml"] == "" {
-		utils.HandelError(err, "KRC0404", "configmap data or config.yml key is missing")
+		utils.HandelError(fmt.Errorf("configmap data or config.yml key is missing"), "KRC0404H", "configmap data or config.yml key is missing")
+		return
 	}
 
 	var innerConfig store.AgentConfig
 	err = yaml.Unmarshal([]byte(cm.Data["config.yml"]), &innerConfig)
 	if err != nil {
-		utils.HandelError(err, "KRC9040", "failed to unmarshal nested yml payload")
+		utils.HandelError(err, "KRC9040H", "failed to unmarshal nested yml payload")
+		return
 	}
 
 	switch action {
 	case "add":
 		if strings.Contains(targetIP, "svc-") {
-			store.Targets[targetIP].Mux.Lock()
-			targetEndpoints := store.Targets[targetIP].Endpoints
-			store.Targets[targetIP].Mux.Unlock()
+			target, ok := store.Targets[targetIP]
+			if !ok || target == nil {
+				utils.HandelError(fmt.Errorf("target %s not found in store", targetIP), "KRC1448M", "target not found in store")
+				return
+			}
+			target.Mux.Lock()
+			targetEndpoints := target.Endpoints
+			target.Mux.Unlock()
 
 			if len(targetEndpoints) > 0 {
 				innerConfig.Ips = deleteIPs(innerConfig.Ips, targetEndpoints...)
@@ -51,7 +60,12 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 		}
 	case "delete":
 		if strings.Contains(targetIP, "svc-") {
-			targetEndpoints := store.Targets[targetIP].Endpoints
+			target, ok := store.Targets[targetIP]
+			if !ok || target == nil {
+				utils.HandelError(fmt.Errorf("target %s not found in store", targetIP), "KRC1448M", "target not found in store")
+				return
+			}
+			targetEndpoints := target.Endpoints
 			innerConfig.Ips = deleteIPs(innerConfig.Ips, targetEndpoints...)
 			removeHeadlessSet(&innerConfig, targetEndpoints)
 		} else {
@@ -59,32 +73,38 @@ func UpdateAgentCM(clientset *kubernetes.Clientset, targetIP string, action stri
 		}
 
 	default:
-		utils.HandelError(err, "KRC9041", "unsupported mutation action")
+		utils.HandelError(fmt.Errorf("unsupported mutation action: %s", action), "KRC9041M", "unsupported mutation action")
+		return
 	}
 
 	innerConfig.Ips = uniqueElements(innerConfig.Ips)
 	updatedBytes, err := yaml.Marshal(&innerConfig)
 	if err != nil {
-		utils.HandelError(err, "KRC9042", "failed to marshal updated config payload")
+		utils.HandelError(err, "KRC9042H", "failed to marshal updated config payload")
+		return
 	}
 
 	cm.Data["config.yml"] = string(updatedBytes)
 
 	_, err = clientset.CoreV1().ConfigMaps(store.KubeRunNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
-		utils.HandelError(err, "KRC1440", "failed to marshal updated config payload")
+		utils.HandelError(err, "KRC1440M", "failed to update configmap agent-config")
+		return
 	}
 }
 
 func UpdateAgents(ip string) {
 	endpoints, err := net.LookupHost(store.KubeRunAgent)
 	if err != nil {
-		utils.HandelError(err, "KRC1442", "failed to find agents")
+		utils.HandelError(err, "KRC1442M", "failed to find agent hostnames via DNS lookup")
+		return
 	}
 	for _, endpoint := range endpoints {
-		_, err := http.Post("http://"+endpoint+":4443/update", "text/plain", strings.NewReader(ip))
+		resp, err := http.Post("http://"+endpoint+":4443/update", "text/plain", strings.NewReader(ip))
 		if err != nil {
-			utils.HandelError(err, "KRC1442", "failed to update agents")
+			utils.HandelError(err, "KRC1446M", "failed to send update HTTP POST to agent "+endpoint)
+		} else {
+			resp.Body.Close()
 		}
 	}
 }

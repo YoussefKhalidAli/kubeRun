@@ -22,13 +22,13 @@ func Connect() *kubernetes.Clientset {
 
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
-			utils.HandelError(err, "KRC9020", "Controller couldn't create cluster config.")
+			utils.HandelError(err, "KRC9020H", "Controller couldn't create cluster config.")
 		}
 	}
 
 	clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		utils.HandelError(err, "KRC9021", "Controller couldn't establish clientset")
+		utils.HandelError(err, "KRC9021H", "Controller couldn't establish clientset")
 	}
 
 	return clientset

@@ -25,9 +25,12 @@ func statefulsetInformer(factory informers.SharedInformerFactory) {
 			defer cancel()
 
 			sts, ok := obj.(*appsv1.StatefulSet)
-			stsClusterIP := sts.Labels["kuberun/clusterIP"]
-			if !ok {
+			if !ok || sts == nil {
 				return
+			}
+			stsClusterIP := ""
+			if sts.Labels != nil {
+				stsClusterIP = sts.Labels["kuberun/clusterIP"]
 			}
 			println("Deleting statefulset with clusterIP: ", stsClusterIP)
 			current, err := clientset.AppsV1().StatefulSets(sts.Namespace).Get(
@@ -38,7 +41,7 @@ func statefulsetInformer(factory informers.SharedInformerFactory) {
 			case errors.IsNotFound(err) || current.UID != sts.UID:
 				resource.DeleteResource(stsClusterIP)
 			case err != nil:
-				utils.HandelError(err, "KRC9022", "Couldn't verify deployment deletion")
+				utils.HandelError(err, "KRC9023M", "Couldn't verify statefulset deletion")
 			default:
 				statefulset.LabelStatefulSet(ctx, sts.Namespace, sts, stsClusterIP)
 			}

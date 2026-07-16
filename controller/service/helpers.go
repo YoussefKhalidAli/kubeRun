@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,11 @@ func CreateshadowService(service *corev1.Service, clientset *kubernetes.Clientse
 	defer cancel()
 
 	shadowService := service
-	target := store.Targets[key]
+	target, ok := store.Targets[key]
+	if !ok || target == nil {
+		utils.HandelError(fmt.Errorf("target %s not found in store", key), "KRC1448M", "target not found in store")
+		return
+	}
 
 	target.Mux.Lock()
 	servers := target.Servers
@@ -25,7 +30,9 @@ func CreateshadowService(service *corev1.Service, clientset *kubernetes.Clientse
 	target.Mux.Unlock()
 
 	for index, _ := range shadowService.Spec.Ports {
-		shadowService.Spec.Ports[index].TargetPort = intstr.FromInt(servers[index].SwitchPort)
+		if index < len(servers) && servers[index] != nil {
+			shadowService.Spec.Ports[index].TargetPort = intstr.FromInt(servers[index].SwitchPort)
+		}
 	}
 
 	shadowService.ObjectMeta.Name = utils.GetShadowName(name)
@@ -49,7 +56,7 @@ func CreateshadowService(service *corev1.Service, clientset *kubernetes.Clientse
 	_, err := clientset.CoreV1().Services(store.KubeRunNamespace).Create(ctx, shadowService, metav1.CreateOptions{})
 
 	if err != nil {
-		utils.HandelError(err, "KRC1445", "Failed to create shadow service")
+		utils.HandelError(err, "KRC1445M", "Failed to create shadow service")
 	}
 }
 
@@ -60,6 +67,6 @@ func DeleteShadowService(clientset *kubernetes.Clientset, shadow string) {
 	err := clientset.CoreV1().Services(store.KubeRunNamespace).Delete(ctx, shadow, metav1.DeleteOptions{})
 
 	if err != nil {
-		utils.HandelError(err, "KRC1445", "Failed to delete shadow service")
+		utils.HandelError(err, "KRC1450M", "Failed to delete shadow service")
 	}
 }

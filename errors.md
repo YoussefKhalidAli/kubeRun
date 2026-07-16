@@ -1,39 +1,90 @@
-# This file outlines the error codes That appear inside KubeRun.
+# KubeRun Error Codes Reference
 
-## Errors follow a convention for easier debugging. All error codes look like `KRZYXXX`, Where `Z` is where the error happened(Controller (C), Agent (A)), `Y` is the type of error, and `XXX` is the number.
+This document catalogs and explains the error codes that appear in KubeRun.
+
+## Error Code Convention
+
+To simplify debugging, every error code follows the convention: **`KRZYXXXS`**
+
+* **`KR`**: Prefix for KubeRun.
+* **`Z`**: Location where the error occurred:
+  * **`A`**: Agent
+  * **`C`**: Controller
+* **`Y`**: Type of the error:
+  * **`0`**: Administrative/Setup (misconfigurations)
+  * **`1`**: Kubernetes connection / networking
+  * **`9`**: Internal bug / system error
+* **`XXX`**: Unique 3-digit error identifier.
+* **`S`**: Severity tier:
+  * **`H` (High / Panic)**: Unrecoverable failures where continuing would corrupt state or lead to a crash anyway. Execution is halted (panics).
+  * **`M` (Medium / Log & Continue)**: Recoverable failures where the operation can be retried or skipped without compromising the system. Checked and logged, then execution resumes.
+  * **`L` (Low / Suppressed)**: Expected, benign, or transient network conditions that do not require operator attention. Logging output is suppressed.
 
 ---
 
-## 1. Administrative errors:
+## 1. Administrative / Setup Errors (Type `0`)
 
-### All administrative errors are caused by a misconfiguration in KubeRun setup and start with `KR0`
+These errors indicate configuration or privilege issues on the host system or cluster.
 
-* **KRA0012:** This error surfaces when the host operating system is experiencing severe memory starvation and cannot allocate a small, non-swappable slice of RAM to initialize the core kernel monitoring structures.
-* **KRA0023:** This error indicates that the entire host machine has completely run out of system file allocations due to a massive density of open files or network connections across all active containers.
-* **KRA0024:** This error triggers when a single user account reaches the maximum number of concurrent file-monitoring queues allowed by the Linux kernel.
-* **KRA0403:** This error indicates KubeRun doesn't have the permissions it needs to run. KubeRun tries its best to get all permissions it needs, it should work out the box. There might be something in your environment blocking it. KubeRun requiers the following permissions:
-  * **Agent:**
-    1. **CAP_NET_ADMIN:** The KubeRun agent requires this to bind to Netlink conntrack multicast groups. This is how KubeRun Knows when the last time a service was accessed in your environment and based on that, whether to scale to 0 or not.
-* **KRA0404:** This error indicates KubeRun agent didn't find a necessary subsystem/process it needs to run. KubeRun assumes your system has:
-    1. **nf_conntrac:** The KubeRun agent requires this to estalish a connection to Netlink conntrack multicast groups. This is how KubeRun Knows when the last time a service was accessed in your environment and based on that, whether to scale to 0 or not.
-    1. **CAP_NET_ADMIN:** The KubeRun agent requires this to bind to Netlink conntrack multicast groups. This is how KubeRun Knows when the last time a service was accessed in your environment and based on that, whether to scale to 0 or not.
-* **KRC0404:** This error indicates KubeRun controller didn't find a necessary resouces it needs to run. KubeRun assumes your system has:
-    1. **agent-config:** The KubeRun controller edits the agent config to keep it updated on tracked resources. KubeRun creates this itself, but `KRC0404` is only caused by missing this cm. Double check your install.
+| Error Code | Severity | Description |
+| :--- | :---: | :--- |
+| **KRA0012H** | High | The host operating system experienced severe memory starvation and could not allocate RAM to initialize core kernel monitoring structures. |
+| **KRA0023H** | High | The host machine ran out of system file allocations (file descriptors) due to high open file density. |
+| **KRA0024H** | High | The user account reached the maximum number of concurrent file-monitoring queues (`fsnotify`) allowed by the Linux kernel. |
+| **KRA0403H** | High | The KubeRun Agent lacks required permissions (`CAP_NET_ADMIN`) to bind to Netlink conntrack multicast groups. |
+| **KRA0404H** | High | The KubeRun Agent cannot find the required `nf_conntrack` kernel subsystem on the host node. |
+| **KRC0404H** | High | The KubeRun Controller could not locate the required `agent-config` ConfigMap. Check the installation manifests. |
+| **KRA0405H** | High | The KubeRun Agent configuration file was not found in `/etc/agent-config/config.yml`. |
 
 ---
 
-## 2. Kubernetes connection errors:
+## 2. Kubernetes Connection / Network Errors (Type `1`)
 
-### Controller talks to kubeapi-server to manage it's own resources and yours. These errors mean something went wrong with the connection. These are most likely caused by an issue in your cluster, but if you don't find one please [open an issue](https://github.com/YoussefKhalidAli/kubeRun/issues/new).
+These errors occur when KubeRun interacts with the Kubernetes API server or makes networking requests to other cluster components.
 
-* **KRC1440:** The KubeRun controller tried updaing the agent's cm `agent-config`, but the update failed.
-* **KRC1441:** The KubeRun controller tried getting or updating a service and failed.
-* **KRC1442:** The KubeRun controller tried getting or updating the agent using an API request and failed.
-* **KRC1443:** The KubeRun controller tried getting or updating a deployment/statefullset and failed.
-* **KRC1444:** The KubeRun controller tried recreating the service but failed.
-* **KRC1445:** The KubeRun controller tried to create or delete the service shadow but failed.
+| Error Code | Severity | Description |
+| :--- | :---: | :--- |
+| **KRC1440M** | Medium | The controller failed to update the `agent-config` ConfigMap. |
+| **KRC1441M** | Medium | The controller failed to update or replace a Service definition in Kubernetes. |
+| **KRC1442M** | Medium | The controller failed to resolve Agent hostnames via DNS lookup. |
+| **KRC1443M** | Medium | The controller failed to update Deployment or StatefulSet labels after retrying. |
+| **KRC1444M** | Medium | The controller failed to recreate a service during the traffic routing replacement. |
+| **KRC1445M** | Medium | The controller failed to create the shadow service. |
+| **KRC1446M** | Medium | The controller failed to send an HTTP POST update payload to the Agent. |
+| **KRC1447M** | Medium | The controller failed to delete an old service during replacement. |
+| **KRC1448L** | Low | An alert was received from an unknown IP address (benign/transient mismatch). |
+| **KRC1448M** | Medium | The requested target IP/key was not found in the controller's active target registry. |
+| **KRC1449M** | Medium | The controller failed to get a service definition from the Kubernetes API. |
+| **KRC1450M** | Medium | The controller failed to delete the shadow service. |
+| **KRC1451L** | Low | The controller failed to send an HTTP POST request to turn off/kill a dynamic traffic switch. |
+| **KRC1452M** | Medium | The controller failed to update a Service's metadata labels after multiple retries. |
+| **KRA1453M** | Medium | The Agent failed to send a traffic conntrack alert HTTP POST to the controller. |
+
 ---
 
-## 2. KubeRun errors:
+## 3. KubeRun Internal Bug / System Errors (Type `9`)
 
-### These errors are probably caused by an issue/bug in the KubeRun source code. If you recieved an error starting with `KR9`, please [open an issue](https://github.com/YoussefKhalidAli/kubeRun/issues/new) with all the details.
+These errors indicate internal software errors or unexpected environment failures during runtime.
+
+| Error Code | Severity | Description |
+| :--- | :---: | :--- |
+| **KRA9010H** | High | Generic system initialization watcher failure at Agent startup. |
+| **KRA9011H** | High | Unknown watcher error during Agent startup. |
+| **KRA9012M** | Medium | `fsnotify` reported an error while monitoring the configuration file at runtime. |
+| **KRA9013H** | High | The Agent failed to unmarshal its YAML configuration payload. |
+| **KRA9014H** | High | The Agent's background Netlink connection listener failed to bind or subscribe to conntrack multicast group events. |
+| **KRA9020H** | High | The Agent updates listener HTTP server failed to bind or start. |
+| **KRA9021M** | Medium | The Agent failed to read or parse the HTTP request body in the update endpoint. |
+| **KRA9022H** | High | Unexpected conntrack Dial failure (other than permission or module missing errors) when establishing the Netlink connection. |
+| **KRC9010M** | Medium | The controller failed to read or parse the HTTP alert payload body. |
+| **KRC9011H** | High | The controller alert HTTP server failed to bind or start. |
+| **KRC9019M** | Medium | A dynamically spawned switch HTTP server failed to start. |
+| **KRC9020H** | High | The controller failed to load the cluster configuration (In-Cluster or local kubeconfig). |
+| **KRC9021H** | High | The controller failed to initialize the Kubernetes client clientset. |
+| **KRC9022M** | Medium | The controller failed to verify a Deployment deletion. |
+| **KRC9023M** | Medium | The controller failed to verify a StatefulSet deletion. |
+| **KRC9040H** | High | The controller failed to unmarshal nested YAML data inside the `agent-config` ConfigMap. |
+| **KRC9041M** | Medium | The controller encountered an unsupported mutation action in the ConfigMap updater. |
+| **KRC9042H** | High | The controller failed to marshal updated configuration data back into YAML. |
+| **KRC9060M** | Medium | The controller failed to scale a resource (Deployment or StatefulSet) via the scale API. |
+| **KRC9061M** | Medium | The controller failed to list pods while waiting for them to transition to the Ready state. |

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"kuberun.com/controller/agent"
@@ -37,16 +39,23 @@ func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
 
 	labelKeys := [2]string{"key", "type"}
 	labelValues := [2]string{key, serviceType}
-	labelService(clientset, metadata.Name, metadata.Namespace, key, labelKeys[:], labelValues[:])
+	err := labelService(clientset, metadata.Name, metadata.Namespace, key, labelKeys[:], labelValues[:])
+	if err != nil {
+		utils.HandelError(err, "KRC1452M", fmt.Sprintf("Couldn't update service %v after retrying", metadata.Name))
+		return
+	}
 
 	store.PrintTargets()
 }
 
 func UpdateService(clussterIp string, service *corev1.Service, old *corev1.Service, clientset *kubernetes.Clientset) {
-	key := service.Labels["kuberun/key"]
-	target := store.Targets[key]
+	key := ""
+	if service.Labels != nil {
+		key = service.Labels["kuberun/key"]
+	}
+	target, ok := store.Targets[key]
 
-	if target == nil {
+	if !ok || target == nil {
 		targets.DeleteTarget(clientset, key)
 		AddService(service, clientset)
 		return

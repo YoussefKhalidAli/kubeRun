@@ -30,16 +30,16 @@ func LoadVariables() *fsnotify.Watcher {
 		if errors.As(err, &errno) {
 			switch errno {
 			case syscall.ENOMEM:
-				utils.HandelError(err, "KRA0012", "Out of Kernel Memory")
+				utils.HandelError(err, "KRA0012H", "Out of Kernel Memory")
 			case syscall.EMFILE:
-				utils.HandelError(err, "KRA0024", "Too Many Active Watcher Instances")
+				utils.HandelError(err, "KRA0024H", "Too Many Active Watcher Instances")
 			case syscall.ENFILE:
-				utils.HandelError(err, "KRA0023", "System-Wide File Descriptor Exhaustion")
+				utils.HandelError(err, "KRA0023H", "System-Wide File Descriptor Exhaustion")
 			default:
-				utils.HandelError(err, "KRA9010", "Generic System Initialization Failure")
+				utils.HandelError(err, "KRA9010H", "Generic System Initialization Failure")
 			}
 		} else {
-			utils.HandelError(err, "KRA9011", "Unknown Watcher Error")
+			utils.HandelError(err, "KRA9011H", "Unknown Watcher Error")
 		}
 	}
 
@@ -58,7 +58,7 @@ func LoadVariables() *fsnotify.Watcher {
 				if !ok {
 					return
 				}
-				utils.HandelError(err, "KRA9012", "fsnotify reported an error while watching the config file")
+				utils.HandelError(err, "KRA9012M", "fsnotify reported an error while watching the config file")
 			}
 		}
 	}()
@@ -75,7 +75,11 @@ func LoadVariables() *fsnotify.Watcher {
 func readVariables() {
 	bytes, err := os.ReadFile(configPath)
 	if err != nil {
-		utils.HandelError(err, "KRA0404", "Config file not found in /etc/agent-config/config.yml")
+		utils.HandelError(err, "KRA0405H", "Config file not found in /etc/agent-config/config.yml")
+		return
 	}
-	yaml.Unmarshal(bytes, &Config)
+	err = yaml.Unmarshal(bytes, &Config)
+	if err != nil {
+		utils.HandelError(err, "KRA9013H", "Failed to unmarshal agent config")
+	}
 }

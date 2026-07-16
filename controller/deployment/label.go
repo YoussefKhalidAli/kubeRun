@@ -34,6 +34,6 @@ func LabelDeplyment(ctx context.Context, resourceNamespace string, deployment *v
 		return updateErr
 	})
 	if err != nil {
-		utils.HandelError(err, "KRC1443", fmt.Sprintf("Couldn't update deployment %v after retrying", deployment.Name))
+		utils.HandelError(err, "KRC1443M", fmt.Sprintf("Couldn't update deployment %v after retrying", deployment.Name))
 	}
 }

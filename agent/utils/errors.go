@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -12,8 +13,12 @@ const (
 )
 
 func HandelError(err error, t string, details string) {
-	fmt.Printf("Error: %v %v %v \n ", ColorRed, t, ColorReset)
-	fmt.Printf("Extra information: %v %v %v", ColorCyan, details, ColorReset)
-	fmt.Printf("Visit %v https://github.com/YoussefKhalidAli/kubeRun/blob/master/errors.md %v for more details about this error", ColorGreen, ColorReset)
-	panic(err)
+	if !strings.Contains(t, "L") {
+		fmt.Printf("Error: %v %v %v \n ", ColorRed, t, ColorReset)
+		fmt.Printf("Extra information: %v %v %v \n", ColorCyan, details, ColorReset)
+		fmt.Printf("Visit %v https://github.com/YoussefKhalidAli/kubeRun/blob/master/errors.md %v for more details about this error \n", ColorGreen, ColorReset)
+	}
+	if strings.Contains(t, "H") {
+		panic(err)
+	}
 }

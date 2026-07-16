@@ -29,6 +29,7 @@ func sync() {
 
 		if !isResourcePresent {
 			checkResource(targetVal, index)
+			targetVal.Mux.Unlock()
 		} else if shouldSleep {
 			targetVal.Status = "Sleeping"
 			targetVal.Mux.Unlock()
@@ -55,6 +56,4 @@ func checkResource(target *store.TargetDto, index string) {
 
 	target.Resource = resource
 	target.ResourceName = resourceName
-	target.Mux.Unlock()
-
 }
