@@ -22,7 +22,7 @@ func PatchService(key string, count int32) {
 	defer cancel()
 
 	resource := store.Targets[key]
-	svc, err := replaceService(resource, clientset, ctx)
+	svc, err := replaceService(key, clientset, ctx)
 
 	resource.Mux.Lock()
 	if err != nil {
@@ -32,8 +32,10 @@ func PatchService(key string, count int32) {
 	resource.Mux.Unlock()
 }
 
-func replaceService(resource *store.TargetDto, clientset *kubernetes.Clientset, ctx context.Context) (*corev1.Service, error) {
+func replaceService(key string, clientset *kubernetes.Clientset, ctx context.Context) (*corev1.Service, error) {
 	var emptySvc *corev1.Service
+
+	resource := store.Targets[key]
 	resource.Mux.Lock()
 	name := resource.ServiceName
 	namespace := resource.Namespace
@@ -45,15 +47,28 @@ func replaceService(resource *store.TargetDto, clientset *kubernetes.Clientset, 
 		return emptySvc, err
 	}
 
-	if svc.Spec.Type == "ExternalName" {
-		svc.Spec.Type = corev1.ServiceType(svc.ObjectMeta.Labels["kuberun/type"])
+	if svc.Spec.Type == corev1.ServiceTypeExternalName {
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
+		svc.Spec.ExternalName = ""
+
+		if corev1.ServiceType(svc.ObjectMeta.Labels["kuberun/type"]) == corev1.ServiceTypeClusterIP {
+			svc.Spec.ClusterIP = key
+			svc.Spec.ClusterIPs = []string{key}
+		} else {
+			svc.Spec.ClusterIP = "None"
+			svc.Spec.ClusterIPs = nil
+		}
+
 	} else {
-		svc.Spec.Type = "ExternalName"
+		svc.Spec.Type = corev1.ServiceTypeExternalName
 		svc.Spec.ClusterIP = ""
 		svc.Spec.ClusterIPs = nil
 
+		svc.Spec.IPFamilies = nil
+		svc.Spec.IPFamilyPolicy = nil
+
 		resource.Mux.Lock()
-		shadowDNSName := fmt.Sprintf("%v.%v.svc.cluster.local", resource.ServiceName, resource.Namespace)
+		shadowDNSName := fmt.Sprintf("%v.%v.svc.cluster.local", utils.GetShadowName(resource.ServiceName), store.KubeRunNamespace)
 		resource.Mux.Unlock()
 
 		svc.Spec.ExternalName = shadowDNSName
