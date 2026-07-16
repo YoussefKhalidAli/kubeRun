@@ -14,6 +14,8 @@ import (
 	"kuberun.com/controller/utils"
 )
 
+var logger = utils.Logger.With("module", "server")
+
 type Switch struct {
 	SwitchPort   int
 	TargetPort   string
@@ -89,7 +91,7 @@ func (sw *Switch) Start() {
 	sw.serverMu.Unlock()
 	sw.Signal.Lock()
 
-	fmt.Printf("switch number %v listener booted successfully\n", sw.SwitchPort)
+	logger.Info("switch listener started", "switch_port", sw.SwitchPort)
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		utils.HandelError(err, "KRC9019M", fmt.Sprintf("Couldn't boot up switch number %v server.", sw.SwitchPort))
@@ -126,11 +128,11 @@ func (sw *Switch) SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	sw.Signal.RLock()
 	defer sw.Signal.RUnlock()
 
-	println("Unlocked")
+	logger.Debug("switch signal unlocked", "switch_port", sw.SwitchPort)
 	proxyDestination, ok := sw.Proxy.Load().(string)
 
 	if ok {
-		println("proxyDestination", proxyDestination)
+		logger.Debug("proxying request", "destination", proxyDestination, "target_port", sw.TargetPort)
 		proxyReq(w, r, proxyDestination, sw.TargetPort)
 	} else {
 		message := []byte("Couldn't find pod to proxy")

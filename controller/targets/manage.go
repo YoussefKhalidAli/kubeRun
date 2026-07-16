@@ -17,6 +17,8 @@ import (
 	"kuberun.com/controller/utils"
 )
 
+var logger = utils.Logger.With("module", "targets")
+
 func CreateTarget(key string, svc corev1.ServiceSpec, metadata metav1.ObjectMeta, resourceName string, resource string) {
 
 	store.Targets[key] = &store.TargetDto{
@@ -85,6 +87,7 @@ func MapServicePorts(portsMap []corev1.ServicePort) *[]int {
 }
 
 func killSwitch(port string) {
+	logger.Debug("killing stale switch", "port", port)
 	resp, err := http.Post("http://"+store.KubeRunPodIp+":"+port, "text/plain", strings.NewReader("Go to Sleep"))
 	if err != nil {
 		utils.HandelError(err, "KRC1451L", "Failed to kill switch on port "+port)

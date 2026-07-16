@@ -18,7 +18,7 @@ func endpointSlicesInformer(factory informers.SharedInformerFactory) {
 
 	endpointSlicesInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(_ any, obj any) {
-			println("Got endpoint")
+			logger.Debug("endpoint slice update received")
 			eSlice, ok := obj.(*discoveryv1.EndpointSlice)
 			if !ok || eSlice == nil {
 				return

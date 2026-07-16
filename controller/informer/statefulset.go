@@ -32,7 +32,7 @@ func statefulsetInformer(factory informers.SharedInformerFactory) {
 			if sts.Labels != nil {
 				stsClusterIP = sts.Labels["kuberun/clusterIP"]
 			}
-			println("Deleting statefulset with clusterIP: ", stsClusterIP)
+			logger.Info("deleting statefulset", "cluster_ip", stsClusterIP)
 			current, err := clientset.AppsV1().StatefulSets(sts.Namespace).Get(
 				ctx, sts.Name, metav1.GetOptions{},
 			)

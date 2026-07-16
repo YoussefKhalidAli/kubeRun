@@ -16,9 +16,17 @@ To simplify debugging, every error code follows the convention: **`KRZYXXXS`**
   * **`9`**: Internal bug / system error
 * **`XXX`**: Unique 3-digit error identifier.
 * **`S`**: Severity tier:
-  * **`H` (High / Panic)**: Unrecoverable failures where continuing would corrupt state or lead to a crash anyway. Execution is halted (panics).
-  * **`M` (Medium / Log & Continue)**: Recoverable failures where the operation can be retried or skipped without compromising the system. Checked and logged, then execution resumes.
-  * **`L` (Low / Suppressed)**: Expected, benign, or transient network conditions that do not require operator attention. Logging output is suppressed.
+  * **`H` (High / Panic)**: Unrecoverable failures. Mapped to `slog.Error` level and then halts execution (panics).
+  * **`M` (Medium / Log & Continue)**: Recoverable failures. Mapped to `slog.Warn` level; execution resumes.
+  * **`L` (Low / Suppressed)**: Expected, benign, or transient network conditions. Mapped to `slog.Debug` level (suppressed in default production configs but visible when `LOG_LEVEL=debug`).
+
+## Logging Integration
+
+All error handling via `utils.HandelError` is logged as a structured message with the following fields:
+* `error_code`: The error code string (e.g. `KRA0012H`).
+* `severity`: The severity character parsed from the code (`H`, `M`, or `L`).
+* `details`: Additional contextual details about the error.
+* `error`: The underlying error message (`err.Error()`).
 
 ---
 

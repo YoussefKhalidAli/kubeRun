@@ -26,5 +26,5 @@ func setKubeRunPodIp(obj any) {
 		return
 	}
 	store.KubeRunPodIp = pod.Status.PodIP
-	println("KubeRunPodIp", store.KubeRunPodIp)
+	logger.Info("controller pod ip set", "pod_ip", store.KubeRunPodIp)
 }

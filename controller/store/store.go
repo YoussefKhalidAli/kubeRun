@@ -5,7 +5,11 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"kuberun.com/controller/utils"
 )
+
+var logger = utils.Logger.With("module", "store")
 
 type AgentConfig struct {
 	KubeRunController string            `yaml:"kube_run_controller"`
@@ -35,7 +39,7 @@ func getSyncMinutes() time.Duration {
 
 	parsed, err := strconv.Atoi(raw)
 	if err != nil || parsed <= 0 {
-		fmt.Printf("Invalid SYNC_MINUTES value %q, falling back to default of %v minute(s)\n", raw, defaultMinutes)
+		logger.Warn("invalid sync minutes configuration", "value", raw, "fallback_default", defaultMinutes)
 		return defaultMinutes
 	}
 
@@ -48,7 +52,7 @@ func getEnvString(key, defaultValue string) string {
 		return defaultValue
 	}
 	if val == "" {
-		fmt.Printf("Warning: environment variable %s is empty-string-but-set, falling back to default %q\n", key, defaultValue)
+		logger.Warn("empty environment variable fallback", "key", key, "fallback_default", defaultValue)
 		return defaultValue
 	}
 	return val

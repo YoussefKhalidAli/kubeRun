@@ -8,7 +8,10 @@ import (
 	"kuberun.com/controller/scale"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/targets"
+	"kuberun.com/controller/utils"
 )
+
+var logger = utils.Logger.With("module", "sync")
 
 func SyncLoop() {
 	ticker := time.NewTicker(store.SyncTime)
@@ -21,7 +24,7 @@ func SyncLoop() {
 
 func sync() {
 	for index, targetVal := range store.Targets {
-		println("Syncing: ", index)
+		logger.Debug("syncing target", "key", index)
 
 		targetVal.Mux.Lock()
 		isResourcePresent := targetVal.Resource != "" && targetVal.ResourceName != ""
@@ -47,7 +50,7 @@ func checkResource(target *store.TargetDto, index string) {
 
 	resourceName, resource := resource.FindResource(clientset, target.SelectorMap, target.Namespace, index)
 	if resourceName == "kuberun-controller" || resource == "DaemonSet" {
-		println("Found unmanagable resource. Skipping")
+		logger.Info("skipping unmanageable resource", "key", index)
 		targets.DeleteTarget(clientset, index)
 		return
 	} else if resourceName == "" && resource == "" {

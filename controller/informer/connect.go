@@ -5,7 +5,10 @@ import (
 	"k8s.io/client-go/informers"
 	"kuberun.com/controller/client"
 	"kuberun.com/controller/store"
+	"kuberun.com/controller/utils"
 )
+
+var logger = utils.Logger.With("module", "informer")
 
 func Connect() {
 	clientset := client.Connect()
@@ -24,7 +27,7 @@ func Connect() {
 	stopChan := make(chan struct{})
 	defer close(stopChan)
 	factory.Start(stopChan)
-	println("we a go")
+	logger.Info("informer factory started")
 	<-stopChan
 
 }

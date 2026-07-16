@@ -13,6 +13,8 @@ import (
 	"kuberun.com/controller/utils"
 )
 
+var logger = utils.Logger.With("module", "scale")
+
 func ScaleResource(key string, count int32) {
 	clientset := client.GetClientset()
 
@@ -21,13 +23,14 @@ func ScaleResource(key string, count int32) {
 		utils.HandelError(fmt.Errorf("target %s not found in store", key), "KRC1448M", "target not found in store")
 		return
 	}
-	fmt.Printf("Scaling %v to %v", resource, count)
 
 	resource.Mux.Lock()
 	resourceKind := resource.Resource
 	name := resource.ResourceName
 	namespace := resource.Namespace
 	resource.Mux.Unlock()
+
+	logger.Info("scaling resource", "key", key, "resource_name", name, "kind", resourceKind, "replicas", count)
 
 	scale := &autoscalingv1.Scale{
 		ObjectMeta: metav1.ObjectMeta{

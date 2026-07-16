@@ -13,12 +13,14 @@ import (
 	"kuberun.com/controller/utils"
 )
 
+var logger = utils.Logger.With("module", "service")
+
 func AddService(service *corev1.Service, clientset *kubernetes.Clientset) {
 	svc, metadata := service.Spec, service.ObjectMeta
 	resourceName, resourceKind := resource.FindResource(clientset, svc.Selector, metadata.Namespace, svc.ClusterIP)
 
 	if resourceName == "kuberun-controller" || resourceKind == "DaemonSet" {
-		println("Found unmanagable resource. Skipping")
+		logger.Info("skipping unmanageable resource", "service", metadata.Name, "namespace", metadata.Namespace)
 		return
 	}
 

@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 
@@ -47,10 +46,10 @@ func (t *TargetDto) MarshalJSON() ([]byte, error) {
 }
 
 func PrintTargets() {
-	jsonData, err := json.MarshalIndent(Targets, "", "  ")
+	jsonData, err := json.Marshal(Targets)
 	if err != nil {
-		fmt.Printf("Error printing map: %v\n", err)
+		logger.Error("error marshaling targets map", "error", err)
 		return
 	}
-	fmt.Println(string(jsonData))
+	logger.Debug("current targets", "targets_json", string(jsonData))
 }

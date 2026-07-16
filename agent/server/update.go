@@ -14,7 +14,7 @@ var configMu sync.Mutex
 func Updates() {
 	http.HandleFunc("/update", updatesHandler)
 
-	println("Booted up update listener")
+	logger.Info("update listener started", "addr", ":4443")
 
 	err := http.ListenAndServe(":4443", nil)
 	if err != nil {
@@ -36,7 +36,7 @@ func updatesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	println("Recieved: ", string(ip))
+	logger.Info("received ip update", "ip", string(ip))
 	configMu.Lock()
 	store.Config.Ips = append(store.Config.Ips, string(ip))
 	configMu.Unlock()
