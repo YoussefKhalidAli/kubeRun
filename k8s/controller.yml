@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: kuberun-controller
   labels:
-    KubeRun: Controller
+    kuberun/operator: controller
 spec:
   # DO NOT increase replicas. There is no leader election and controller state (store.Targets,
   # in-memory port allocations, HTTP switch servers) is not shared across replicas. Running more
@@ -11,17 +11,17 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      KubeRun: Controller
+      kuberun/operator: controller
   template:
     metadata:
       labels:
-        KubeRun: Controller
+        kuberun/operator: controller
     spec:
       serviceAccountName: kuberun-controller-sa
       subdomain: kuberun-controller
       containers:
         - name: kuberun-controller
-          image: youssefkali/kuberun-controller:v0.4.51
+          image: youssefkali/kuberun-controller:v0.5.0
           imagePullPolicy: Always
           resources:
                requests:
@@ -32,7 +32,7 @@ spec:
                  cpu: "150m"
           env:
             - name: SYNC_MINUTES
-              value: "15"
+              value: "1"
           ports:
             - name: alert
               containerPort: 4444
@@ -43,7 +43,7 @@ metadata:
   name: kuberun-controller
 spec:
   selector:
-    KubeRun: Controller
+    kuberun/operator: controller
   type: ClusterIP
   ports:
     - name: tcp-4444

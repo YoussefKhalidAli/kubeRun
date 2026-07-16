@@ -10,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"kuberun.com/controller/client"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/utils"
@@ -23,59 +22,20 @@ func PatchService(key string, count int32) {
 	defer cancel()
 
 	resource := store.Targets[key]
-	resource.Mux.Lock()
-	name := resource.ServiceName
-	namespace := resource.Namespace
-	shouldReplace := strings.Contains(key, "svc-") && strings.Contains(resource.Status, "ing")
-	resource.Mux.Unlock()
-
-	var svc *corev1.Service
-	var err error
-
-	if shouldReplace {
-		svc, err = replaceService(resource, clientset, ctx)
-		if err != nil {
-			utils.HandelError(err, "KRC1444", "Couldn't replace service")
-		}
-	} else {
-		svc, err = clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't find service %v", name))
-		}
-	}
-
-	if count == 0 {
-		svc.Spec.Selector = map[string]string{
-			"KubeRun": "Controller",
-		}
-		for index, _ := range svc.Spec.Ports {
-			svc.Spec.Ports[index].TargetPort = intstr.FromInt(resource.Servers[index].SwitchPort)
-		}
-	} else {
-		svc.Spec.Selector = resource.SelectorMap
-		servicePorts := *(resource.ServicePorts)
-		for index, _ := range svc.Spec.Ports {
-			svc.Spec.Ports[index].TargetPort = intstr.FromInt(servicePorts[index])
-		}
-	}
+	svc, err := replaceService(key, clientset, ctx)
 
 	resource.Mux.Lock()
-	updated, err := clientset.CoreV1().Services(namespace).Update(
-		ctx,
-		svc,
-		metav1.UpdateOptions{},
-	)
-
 	if err != nil {
-		utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't update service %v", name))
+		utils.HandelError(err, "KRC1441", fmt.Sprintf("Couldn't update service %v", resource.ServiceName))
 	}
-
-	resource.UpdateMarker = updated.ResourceVersion
+	resource.UpdateMarker = svc.ResourceVersion
 	resource.Mux.Unlock()
 }
 
-func replaceService(resource *store.TargetDto, clientset *kubernetes.Clientset, ctx context.Context) (*corev1.Service, error) {
+func replaceService(key string, clientset *kubernetes.Clientset, ctx context.Context) (*corev1.Service, error) {
 	var emptySvc *corev1.Service
+
+	resource := store.Targets[key]
 	resource.Mux.Lock()
 	name := resource.ServiceName
 	namespace := resource.Namespace
@@ -87,12 +47,31 @@ func replaceService(resource *store.TargetDto, clientset *kubernetes.Clientset, 
 		return emptySvc, err
 	}
 
-	if svc.Spec.ClusterIP == "None" {
+	if svc.Spec.Type == corev1.ServiceTypeExternalName {
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
+		svc.Spec.ExternalName = ""
+
+		if corev1.ServiceType(svc.ObjectMeta.Labels["kuberun/type"]) == corev1.ServiceTypeClusterIP {
+			svc.Spec.ClusterIP = key
+			svc.Spec.ClusterIPs = []string{key}
+		} else {
+			svc.Spec.ClusterIP = "None"
+			svc.Spec.ClusterIPs = nil
+		}
+
+	} else {
+		svc.Spec.Type = corev1.ServiceTypeExternalName
 		svc.Spec.ClusterIP = ""
 		svc.Spec.ClusterIPs = nil
-	} else {
-		svc.Spec.ClusterIP = "None"
-		svc.Spec.ClusterIPs = []string{"None"}
+
+		svc.Spec.IPFamilies = nil
+		svc.Spec.IPFamilyPolicy = nil
+
+		resource.Mux.Lock()
+		shadowDNSName := fmt.Sprintf("%v.%v.svc.cluster.local", utils.GetShadowName(resource.ServiceName), store.KubeRunNamespace)
+		resource.Mux.Unlock()
+
+		svc.Spec.ExternalName = shadowDNSName
 	}
 
 	svc.ResourceVersion = ""

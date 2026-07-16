@@ -1,6 +1,6 @@
 |operator|current version|
 | -------- | ------- |
-|controller| 0.4.52|
+|controller| 0.5.0|
 |agent| 0.3.0|
 
 ## Controller
@@ -60,6 +60,10 @@
     - Read namespace, agent config name, and agent service name from env.
       - Before: KubeRunNamespace, KubeRunAgentConfigName, and KubeRunAgent were hardcoded.
       - Now: Read from env vars.
+- 0.5.0: 
+    - Create and use "shadow" services instead of patching user's services.
+      - Before: When a resource is scaled to 0, it's service is patched to point (selector) to `kuberun`'s controller. This meant that `kuberun` only works with services in it's own namespace.
+      - Now: Create a "shadow" service. A shadow service is a carbon copy of the user's service, except it exists in `kuberun` namespace and points to its controller using switch ports. When a resource is scaled to 0, the user's service is patched to `ExternalName` and points to the shadow service.
 ---
 
 ## Agent

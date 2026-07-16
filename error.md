@@ -31,6 +31,7 @@
 * **KRC1442:** The KubeRun controller tried getting or updating the agent using an API request and failed.
 * **KRC1443:** The KubeRun controller tried getting or updating a deployment/statefullset and failed.
 * **KRC1444:** The KubeRun controller tried recreating the service but failed.
+* **KRC1445:** The KubeRun controller tried to create or delete the service shadow but failed.
 ---
 
 ## 2. KubeRun errors:
