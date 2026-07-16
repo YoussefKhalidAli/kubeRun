@@ -10,6 +10,7 @@ import (
 	"kuberun.com/controller/service"
 	"kuberun.com/controller/store"
 	"kuberun.com/controller/targets"
+	"kuberun.com/controller/utils"
 )
 
 func serviceInformer(factory informers.SharedInformerFactory) {
@@ -20,7 +21,8 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
 			svc := obj.(*corev1.Service)
-			if store.Targets[service.GetHeadlessServiceKey(svc.ObjectMeta.Name)] == nil {
+			key := svc.ObjectMeta.Labels["kuberun/key"]
+			if store.Targets[key] == nil {
 				service.AddService(svc, clientset)
 			}
 		},
@@ -36,7 +38,7 @@ func serviceInformer(factory informers.SharedInformerFactory) {
 			store.PrintTargets()
 			if !strings.Contains(target.Status, "ing") {
 				targets.DeleteTarget(clientset, key)
-				service.DeleteShadowService(clientset, service.GetShadowName(target.ServiceName), target.Namespace)
+				service.DeleteShadowService(clientset, utils.GetShadowName(target.ServiceName))
 			}
 			target.Mux.Unlock()
 		},
