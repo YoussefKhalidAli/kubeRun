@@ -64,6 +64,15 @@
     - Create and use "shadow" services instead of patching user's services.
       - Before: When a resource is scaled to 0, it's service is patched to point (selector) to `kuberun`'s controller. This meant that `kuberun` only works with services in it's own namespace.
       - Now: Create a "shadow" service. A shadow service is a carbon copy of the user's service, except it exists in `kuberun` namespace and points to its controller using switch ports. When a resource is scaled to 0, the user's service is patched to `ExternalName` and points to the shadow service.
+- 0.5.01: 
+    - Make target status an enum.
+      - Before: target status is string.
+      - Now: target status is a string enum.
+- 0.5.1: 
+    - Get `kuberun` controller pod ip.
+      - Before: No knowledge of pod ip.
+      - Now: Get `kuberun` controller pod ip. This is done to "kill" forgotten switches by broadcasting to all switch ports on scale to 1.
+      - Notes: This is done by adding `kuberun/run: "true"` to the controller pod.
 ---
 
 ## Agent
