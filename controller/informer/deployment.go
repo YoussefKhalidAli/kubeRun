@@ -33,7 +33,7 @@ func deploymentInformer(factory informers.SharedInformerFactory) {
 			if dep.Labels != nil {
 				depClusterIP = dep.Labels["kuberun/clusterIP"]
 			}
-			println("Deleting deployment with clusterIP: ", depClusterIP)
+			logger.Info("deleting deployment", "cluster_ip", depClusterIP)
 			current, err := clientset.AppsV1().Deployments(dep.Namespace).Get(
 				ctx, dep.Name, metav1.GetOptions{},
 			)

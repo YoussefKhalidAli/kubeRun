@@ -10,7 +10,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kuberun.com/controller/deployment"
 	"kuberun.com/controller/store"
+	"kuberun.com/controller/utils"
 )
+
+var logger = utils.Logger.With("module", "resource")
 
 func FindResource(clientset *kubernetes.Clientset, selectorMap map[string]string, resourceNamespace string, clusterIP string) (string, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute/2)
@@ -83,5 +86,5 @@ func DeleteResource(clusterIP string) {
 	}
 
 	target.Mux.Unlock()
-	println("deleted resource")
+	logger.Info("deleted resource", "cluster_ip", clusterIP)
 }

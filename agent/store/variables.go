@@ -2,7 +2,6 @@ package store
 
 import (
 	"errors"
-	"log"
 	"os"
 	"syscall"
 
@@ -10,6 +9,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"kuberun.com/agent/utils"
 )
+
+var logger = utils.Logger.With("module", "store")
 
 type AgentConfig struct {
 	KubeRunController string            `yaml:"kube_run_controller"`
@@ -52,7 +53,7 @@ func LoadVariables() *fsnotify.Watcher {
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
+				logger.Info("config file event", "event", event.String())
 				readVariables()
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -65,7 +66,7 @@ func LoadVariables() *fsnotify.Watcher {
 
 	err = watcher.Add(configDir)
 	if err != nil {
-		log.Fatal(err)
+		utils.HandelError(err, "KRA9010H", "Failed to add path to config file watcher")
 	}
 
 	return watcher

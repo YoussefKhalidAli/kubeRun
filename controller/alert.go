@@ -14,7 +14,7 @@ func Alert() {
 
 	http.HandleFunc("/alert", alertHandler)
 
-	println("Alert listener booted successfully")
+	logger.Info("alert listener started", "addr", ":4444")
 
 	err := http.ListenAndServe(":4444", nil)
 	if err != nil {
@@ -36,7 +36,7 @@ func alertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ipStr := string(ip)
-	println("Hit:", ipStr)
+	logger.Info("alert received", "ip", ipStr)
 
 	target, ok := store.Targets[ipStr]
 	if !ok || target == nil {

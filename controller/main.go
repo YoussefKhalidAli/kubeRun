@@ -5,7 +5,10 @@ import (
 	"kuberun.com/controller/informer"
 	"kuberun.com/controller/server"
 	"kuberun.com/controller/store"
+	"kuberun.com/controller/utils"
 )
+
+var logger = utils.Logger
 
 func main() {
 	store.Targets = make(map[string]*store.TargetDto)

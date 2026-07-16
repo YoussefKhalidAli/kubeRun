@@ -9,14 +9,17 @@ import (
 	"kuberun.com/agent/utils"
 )
 
+var logger = utils.Logger.With("module", "server")
+
 func Alert(ip string) {
 	controllerUrl := fmt.Sprintf("http://%v/alert", store.Config.KubeRunController)
-	println(controllerUrl)
 
 	target := ip
 	if val, exists := store.Config.HeadlessMap[ip]; exists {
 		target = val
 	}
+
+	logger.Debug("sending alert", "controller_url", controllerUrl, "ip", ip, "target", target)
 
 	resp, err := http.Post(controllerUrl, "text/plain", strings.NewReader(target))
 	if err != nil {
